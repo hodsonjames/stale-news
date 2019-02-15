@@ -1,0 +1,38 @@
+
+Functions and their related methods.
+
+Indented functions may be used by functions housing them (to their immediate left in indentation).
+
+#N indicates function overloading.
+
+famaMacBethRegression()
+	> abnormalReturn() #1
+		> firmReturn()
+		> allFirmsReturn()
+	> abnormalVol() #1
+		> firmVolume()
+		> allFirmsVolume()
+	> abnormalPercentageOld()
+	> abnormalPercentageRecombinations()
+	> generateXVector()
+		> stories()
+		> abnormalStories()
+			> stories()
+		> terms()
+		> marketCap()
+		> bookToMarketCap()
+			> marketCap()
+		> abnormalReturn() #2
+			> abnormalReturn() #1
+				> firmReturn()
+				> allFirmsReturn()
+		> abnormalVol() #2
+			> abnormalVol() #1
+				> firmVolume()
+				> allFirmsVolume()
+		> abnormalVolatility()
+		> illiquidity()
+
+-----
+
+neweyWestStdErrors()
