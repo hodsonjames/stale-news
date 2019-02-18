@@ -15,4 +15,7 @@ root = ET.fromstring(q)
 
 #show some data (2 articles)
 for i in range(2):
-    print(root[1][0][1][1][1].text)
+    text = ""
+    for element in root[i][0][1][1]: #likely slow, fix later
+        text += element.text
+    print(text)
