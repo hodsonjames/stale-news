@@ -4,7 +4,7 @@
 import xml.etree.ElementTree as ET
 import re
 
-with open("../data/data.nml") as f:
+with open("../data/2001_sample_10M.nml") as f:
     xml = f.read()
 
 q = re.sub(r"(<\?xml[^>]+\?>)", "", xml)
@@ -61,19 +61,30 @@ def tickersandarticle(number):
 #Procedure
 ## given an article and ticker, classify as old news
 
-articlenumber = 130
-tic = ""
+articlenumber = 53516
+tic = "AAPL"
 
 # find article and related tickers
 t, a = tickersandarticle(articlenumber)
 
 # stem and stop article into set
-a = stopandstem(a)
+orig = stopandstem(a)
 
 t.remove(tic)
 
-for i in range(1000):
+import heapq
+maxpq = []
+for _ in range(5):
+    heapq.heappush(maxpq, (-1, 'starter'))
+#heapq.heappop(maxpq)
+
+for i in range(45910, 45911 + 10000):
     N = ticker(i).intersection(t)
     if (len(N) > 0):
-        #update PQ?
-        print("match")
+        h = heapq.heappop(maxpq)
+        a = article(i)
+        sim = similaritytest(orig, stopandstem(a))
+        #print(sim)
+        if (sim > h[0]):
+            h = (sim, i)
+        heapq.heappush(maxpq, h)
