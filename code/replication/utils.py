@@ -112,8 +112,7 @@ def terms(firm, date, file):
 
 def marketCap(firm, date, file):
 	"""
-        LOG market capitalization of firm as of market open on date
-        What kind of LOG?
+        LN market capitalization of firm as of market open on date
         Returns FLOAT
     """
 
@@ -133,9 +132,9 @@ def abnormalVolatility(firm, dateStart, dateEnd, file):
 
 def illiquidity(firm, dateStart, dateEnd, file):
 	"""
-		LOG of the illiquidity measure from Amihud, computed as the prior-week average of 
+		LN of the illiquidity measure from Amihud, computed as the prior-week average of 
 		10**6 * |Ret(firm,date)| / Volume(firm,date)
-        What kind of LOG?
+        Returns FLOAT
 	"""
 
 def generateXVector(firm, data, file):
