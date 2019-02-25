@@ -1,6 +1,7 @@
 # databases.py
 # -------
 # Database types and initialization
+from collections import OrderedDict
 
 
 class TextDatabase:
@@ -50,7 +51,24 @@ class MeasuresDatabase(TextDatabase):
     """
 
     def __init__(self, file):
+        """
+        Populates the measures database and creates:
+        1. Ordered Dictionary mapping each date to list of relevant news articles
+        2. Dictionary mapping each ticker to list of relevant news articles
+        """
         super().__init__(file)
+        self.dateMap = {}
+        self.tickerMap = {}
+        for row in self.database:
+            if row[2] in self.dateMap:
+                self.dateMap.get(row[2]).append(row)
+            else:
+                self.dateMap[row[2]] = [row]
+            if row[1] in self.tickerMap:
+                self.tickerMap.get(row[1]).append(row)
+            else:
+                self.tickerMap[row[1]] = [row]
+        self.dateMap = OrderedDict(sorted(self.dateMap.items(), key=lambda t: t[0]))
         # Populate sub-databases for reprints and recombinations
         # self.reprints, self.recombinations = self.generateReprintsRecombinations()
 

@@ -16,7 +16,7 @@ def percentageOld(firm, date, mdatabase):
     If no match is found return -1 otherwise
     Returns FLOAT
     """
-    firmMatches = mdatabase.getMatches(firm, 1)
+    firmMatches = mdatabase.tickerMap.get(firm, [])
     if len(firmMatches) == 0:
         return -1
     firmNews = [row for row in firmMatches if row[2] == date]
@@ -35,7 +35,7 @@ def percentageRecombinations(firm, date, mdatabase):
     If no match is found return -1 otherwise
     Returns FLOAT
     """
-    firmMatches = mdatabase.getMatches(firm, 1)
+    firmMatches = mdatabase.tickerMap.get(firm, [])
     if len(firmMatches) == 0:
         return -1
     firmNews = [row for row in firmMatches if row[2] == date]
@@ -148,19 +148,31 @@ def stories(firm, date, mdatabase):
     Return -1 if firm not in database otherwise
     Returns INTEGER
     """
-    firmMatches = mdatabase.getMatches(firm, 1)
+    firmMatches = mdatabase.tickerMap.get(firm, [])
     if len(firmMatches) == 0:
         return -1
     return len([row for row in firmMatches if row[2] == date])
 
 
-
-def abnormalStories(firm, date, file):
+def abnormalStories(firm, date, mdatabase):
     """
     Difference between the average number of stories over [date-5, date-1] and
     the average number of stories over [date-60, date-6] for firm
+    Return -1 if firm not in database or date not compatible
     Returns FLOAT
     """
+    dates = list(mdatabase.dateMap.keys())
+    if (date not in dates) or (dates.index(date) - 60) < 0 or (firm not in mdatabase.tickerMap):
+        return -1
+    dateLess60 = dates.index(date) - 60
+    stories5to1 = 0
+    stories60to6 = 0
+    for i in range(60):
+        if i < 55:
+            stories60to6 += stories(firm, dates[dateLess60 + i], mdatabase)
+        else:
+            stories5to1 += stories(firm, dates[dateLess60 + i], mdatabase)
+    return (stories5to1 / 5) - (stories60to6 / 55)
 
 
 def terms(firm, date, mdatabase):
@@ -170,7 +182,7 @@ def terms(firm, date, mdatabase):
     Return -1 if firm not in database otherwise
     Returns FLOAT
     """
-    firmMatches = mdatabase.getMatches(firm, 1)
+    firmMatches = mdatabase.tickerMap.get(firm, [])
     if len(firmMatches) == 0:
         return -1
     firmNews = [row for row in firmMatches if row[2] == date]
