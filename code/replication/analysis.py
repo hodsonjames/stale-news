@@ -11,10 +11,14 @@ OLD_THRESHOLD = 0.6
 REPRINT_RECOMBINATION_THRESHOLD = 0.8
 data["OldNews"] = data["Old"] > OLD_THRESHOLD
 data["share_spanned"] = data["ClosestNeighbor"] / data["Old"]
-data["Reprint"] = data["share_spanned"] >= REPRINT_RECOMBINATION_THRESHOLD if data["OldNews"] else False
-data["Recombination"] = data["share_spanned"] < REPRINT_RECOMBINATION_THRESHOLD if data["OldNews"] else False
+data["Reprint"] = data.apply(lambda row: row["share_spanned"] >= REPRINT_RECOMBINATION_THRESHOLD if row["OldNews"] else False, axis=1)
+data["Recombination"] = data.apply(lambda row: row["share_spanned"] < REPRINT_RECOMBINATION_THRESHOLD if row["OldNews"] else False, axis=1)
 
 # Construct firm factors (6, 7)
+# firms = data[['ticker', 'date', 'Reprint', 'Recombination']].groupby(['ticker']).agg([sum, count])
+# print(firms)
+
+# Construct abnormal firm factors
 
 # Regression for old news vs. market reaction (8, 9)
 
@@ -23,4 +27,4 @@ data["Recombination"] = data["share_spanned"] < REPRINT_RECOMBINATION_THRESHOLD 
 # Regression for reversal (12)
 
 # Output..?
-print(data)
+print(data[["id", "OldNews", "Reprint", "Recombination"]])
