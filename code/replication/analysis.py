@@ -15,8 +15,12 @@ data["Reprint"] = data.apply(lambda row: row["share_spanned"] >= REPRINT_RECOMBI
 data["Recombination"] = data.apply(lambda row: row["share_spanned"] < REPRINT_RECOMBINATION_THRESHOLD if row["OldNews"] else False, axis=1)
 
 # Construct firm factors (6, 7)
-# firms = data[['ticker', 'date', 'Reprint', 'Recombination']].groupby(['ticker']).agg([sum, count])
-# print(firms)
+dataGroup = data.groupby(['ticker', 'date'])
+S = dataGroup['id'].count()
+pctOld = (dataGroup['OldNews'].sum()/S).rename("PctOld")
+pctRecombination = (dataGroup['Recombination'].sum()/S).rename("PctRecombination")
+firms = pd.concat([pctOld, pctRecombination], axis=1)
+print(firms)
 
 # Construct abnormal firm factors
 
@@ -27,4 +31,4 @@ data["Recombination"] = data.apply(lambda row: row["share_spanned"] < REPRINT_RE
 # Regression for reversal (12)
 
 # Output..?
-print(data[["id", "OldNews", "Reprint", "Recombination"]])
+# print(data[["id", "OldNews", "Reprint", "Recombination"]])
