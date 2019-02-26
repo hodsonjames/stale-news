@@ -11,8 +11,8 @@ OLD_THRESHOLD = 0.6
 REPRINT_RECOMBINATION_THRESHOLD = 0.8
 data["OldNews"] = data["Old"] > OLD_THRESHOLD
 data["share_spanned"] = data["ClosestNeighbor"] / data["Old"]
-data["Reprint"] = data["share_spanned"] >= REPRINT_RECOMBINATION_THRESHOLD
-data["Recombination"] = data["share_spanned"] < REPRINT_RECOMBINATION_THRESHOLD
+data["Reprint"] = data["share_spanned"] >= REPRINT_RECOMBINATION_THRESHOLD if data["OldNews"] else False
+data["Recombination"] = data["share_spanned"] < REPRINT_RECOMBINATION_THRESHOLD if data["OldNews"] else False
 
 # Construct firm factors (6, 7)
 
