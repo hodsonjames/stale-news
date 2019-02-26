@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from linearmodels.panel import FamaMacBeth
 
 # Import data
 headers = ("id", "ticker", "date", "time", "Old", "ClosestNeighbor", "length", "closest1", "closest2")
@@ -23,6 +24,10 @@ firms = pd.concat([pctOld, pctRecombination], axis=1)
 print(firms)
 
 # Construct abnormal firm factors
+    # residuals from daily cross-sectional regressions of the measure on 
+    # the log of the number of stories for ﬁrm i on date t, 
+    # the log of the average number of unique terms per story, and 
+    # the square of the log average number of unique terms per story
 
 # Regression for old news vs. market reaction (8, 9)
 
