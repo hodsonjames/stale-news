@@ -4,24 +4,23 @@ import utils as u
 db = d.MeasuresDatabase("simulated_data.txt")
 
 """
-Test: MeasuresDatabase tickerMap functionality
+Test: MeasuresDatabase tdMap functionality
 count = 0
-for k in db.tickerMap:
-    print("TICKER: " + k)
-    for row in db.tickerMap.get(k):
+for k in db.tdMap:
+    print("TICKER: " + k[0] + " DATE: " + k[1])
+    for row in db.tdMap.get(k):
         print(row)
         count += 1
 print(count)
 """
 
+
 """
-Test: MeasuresDatabase dateMap functionality
+Test: MeasuresDatabase dates functionality
 count = 0
-for k in db.dateMap:
+for k in db.dates:
     print("DATE: " + k)
-    for row in db.dateMap.get(k):
-        print(row)
-        count += 1
+    count += 1
 print(count)
 """
 
@@ -52,21 +51,24 @@ print("Expected: -1 Actual: " + str(u.percentageOld("PRGO", "2015042", db)))
 print("Expected: -1 Actual: " + str(u.percentageOld("FAKE", "20150421", db)))
 """
 
+
 """
 Test: stories functionality
 print("Expected: 2 Actual: " + str(u.stories("PRGO", "20150421", db)))
 print("Expected: 2 Actual: " + str(u.stories("TWTR", "20150611", db)))
-print("Expected: -1 Actual: " + str(u.stories("DOES NOT EXIST", "20150611", db)))
+print("Expected: 0 Actual: " + str(u.stories("DOES NOT EXIST", "20150611", db)))
 print("Expected: 0 Actual: " + str(u.stories("TWTR", "302123231", db)))
 """
+
 
 """
 Test: terms functionality
 print("Expected: 208.5 Actual: " + str(u.terms("PRGO", "20150421", db)))
 print("Expected: 97.0 Actual: " + str(u.terms("TWTR", "20150611", db)))
 print("Expected: -1 Actual: " + str(u.terms("DOES NOT EXIST", "20150611", db)))
-print("Expected: 0 Actual: " + str(u.terms("TWTR", "302123231", db)))
+print("Expected: -1 Actual: " + str(u.terms("TWTR", "302123231", db)))
 """
+
 
 """
 Test: abnormalStories functionality
