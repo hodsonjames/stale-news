@@ -8,42 +8,35 @@ Functions that interface with measures directory in repo
 import databases as db
 
 
-def percentageOld(firm, date, mdatabase):
+def percentageOld(firm, date, mdatabase, oldthreshold=0.6):
     """
-    PctOld for firm on given data
+    PctOld for firm on given data (with adjustable threshold for old)
     Uses decimal representation
     Relies on column structure of mdatabase
     If no match is found return -1 otherwise
     Returns FLOAT
     """
-    firmMatches = mdatabase.tickerMap.get(firm, [])
-    if len(firmMatches) == 0:
+    matches = mdatabase.tdMap.get((firm, date), [])
+    if len(matches) == 0:
         return -1
-    firmNews = [row for row in firmMatches if row[2] == date]
-    if len(firmNews) == 0:
-        return -1
-    oldCount = len([row for row in firmNews if float(row[4]) >= 0.6])
-    return oldCount / len(firmNews)
+    oldCount = len([row for row in matches if float(row[4]) >= oldthreshold])
+    return oldCount / len(matches)
 
 
-
-def percentageRecombinations(firm, date, mdatabase):
+def percentageRecombinations(firm, date, mdatabase, oldthreshold=0.6, reprintthresh=0.8):
     """
-    PctRecombinations for firm on given data
+    PctRecombinations for firm on given data (with adjustable threshold for old and reprint)
     Uses decimal representation
     Relies on column structure of mdatabase
     If no match is found return -1 otherwise
     Returns FLOAT
     """
-    firmMatches = mdatabase.tickerMap.get(firm, [])
-    if len(firmMatches) == 0:
+    matches = mdatabase.tdMap.get((firm, date), [])
+    if len(matches) == 0:
         return -1
-    firmNews = [row for row in firmMatches if row[2] == date]
-    if len(firmNews) == 0:
-        return -1
-    recomCount = len([row for row in firmNews if (float(row[4]) >= 0.6) and ((float(row[5]) / float(row[4])) < 0.8)])
-    return recomCount / len(firmNews)
-
+    recomCount = len([row for row in matches if (float(row[4]) >= oldthreshold)
+                      and ((float(row[5]) / float(row[4])) < reprintthresh)])
+    return recomCount / len(matches)
 
 
 """
@@ -112,7 +105,7 @@ def abnormalVol(firm, date, file):
     Uses decimal representation
     Returns FLOAT
     """
-    return firmVolume(firm, data, file) - allFirmsVolume(date, file)
+    return firmVolume(firm, date, file) - allFirmsVolume(date, file)
 
 
 def abnormalVol(firm, dateStart, dateEnd, file):
@@ -145,24 +138,21 @@ def stories(firm, date, mdatabase):
     Number of articles published on date tagged with firm that have
     relevance score greater than 70%
     Relies on column structure of mdatabase
-    Return -1 if firm not in database otherwise
     Returns INTEGER
     """
-    firmMatches = mdatabase.tickerMap.get(firm, [])
-    if len(firmMatches) == 0:
-        return -1
-    return len([row for row in firmMatches if row[2] == date])
+    matches = mdatabase.tdMap.get((firm, date), [])
+    return len(matches)
 
 
 def abnormalStories(firm, date, mdatabase):
     """
     Difference between the average number of stories over [date-5, date-1] and
     the average number of stories over [date-60, date-6] for firm
-    Return -1 if firm not in database or date not compatible
+    Return -1 if date not compatible
     Returns FLOAT
     """
-    dates = list(mdatabase.dateMap.keys())
-    if (date not in dates) or (dates.index(date) - 60) < 0 or (firm not in mdatabase.tickerMap):
+    dates = list(mdatabase.dates.keys())
+    if (date not in dates) or (dates.index(date) - 60) < 0:
         return -1
     dateLess60 = dates.index(date) - 60
     stories5to1 = 0
@@ -179,16 +169,13 @@ def terms(firm, date, mdatabase):
     """
     Average number of unique terms in stories published on date, tagged with firm
     Relies on column structure of mdatabase
-    Return -1 if firm not in database otherwise
+    Return -1 if no stories for firm on date
     Returns FLOAT
     """
-    firmMatches = mdatabase.tickerMap.get(firm, [])
-    if len(firmMatches) == 0:
+    matches = mdatabase.tdMap.get((firm, date), [])
+    if len(matches) == 0:
         return -1
-    firmNews = [row for row in firmMatches if row[2] == date]
-    if len(firmNews) == 0:
-        return 0
-    return sum([float(row[6]) for row in firmNews]) / len(firmNews)
+    return sum([float(row[6]) for row in matches]) / len(matches)
 
 
 def marketCap(firm, date, file):

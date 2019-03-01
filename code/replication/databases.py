@@ -53,54 +53,17 @@ class MeasuresDatabase(TextDatabase):
     def __init__(self, file):
         """
         Populates the measures database and creates:
-        1. Ordered Dictionary mapping each date to list of relevant news articles
-        2. Dictionary mapping each ticker to list of relevant news articles
+        1. self.dates: Ordered Dictionary of all dates where key = date, value = None
+        2. self.tdMap: Dictionary mapping each (ticker, date) tuple to list of relevant news articles
         """
         super().__init__(file)
-        self.dateMap = {}
-        self.tickerMap = {}
+        self.dates = {}
+        self.tdMap = {}
         for row in self.database:
-            if row[2] in self.dateMap:
-                self.dateMap.get(row[2]).append(row)
+            if row[2] not in self.dates:
+                self.dates[row[2]] = None
+            if (row[1], row[2]) in self.tdMap:
+                self.tdMap[(row[1], row[2])].append(row)
             else:
-                self.dateMap[row[2]] = [row]
-            if row[1] in self.tickerMap:
-                self.tickerMap.get(row[1]).append(row)
-            else:
-                self.tickerMap[row[1]] = [row]
-        self.dateMap = OrderedDict(sorted(self.dateMap.items(), key=lambda t: t[0]))
-        # Populate sub-databases for reprints and recombinations
-        # self.reprints, self.recombinations = self.generateReprintsRecombinations()
-
-    def generateReprintsRecombinations(self):
-        """
-        First return value is sub-database with rows corresponding to articles
-        classified as reprints, ClosestNeighbor(s)/Old(s) >= 0.8
-        Second return value is sub-database with rows corresponding to articles
-        classified as recombinations, ClosestNeighbor(s)/Old(s) < 0.8
-        """
-        reprints = []
-        recombinations = []
-        for row in self.database:
-            if (float(row[4]) >= 0.6) and ((float(row[5]) / float(row[4])) >= 0.8):
-                reprints.append(row)
-            elif float(row[4]) >= 0.6:
-                recombinations.append(row)
-        return reprints, recombinations
-
-    def getMatchesReprint(self, identifier, column):
-        """
-        Returns a list of rows (lists) that have the given identifier in its corresponding column
-        from the reprint database
-        If no match is found an empty list is returned, len() == 0
-        """
-        return [row for row in self.reprints if row[column] == identifier]
-
-    def getMatchesRecombination(self, identifier, column):
-        """
-        Returns a list of rows (lists) that have the given identifier in its corresponding column
-        from the recombinations database
-        If no match is found an empty list is returned, len() == 0
-        """
-        return [row for row in self.recombinations if row[column] == identifier]
-
+                self.tdMap[(row[1], row[2])] = [row]
+        self.dates = OrderedDict(sorted(self.dates.items(), key=lambda t: t[0]))
