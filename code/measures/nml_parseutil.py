@@ -3,41 +3,14 @@ import xml.etree.ElementTree as ET
 from dateutil import parser
 import sys
 
-class Article:
-    
-    def __init__(self, company, timestamp, headline, article_text):
-        self.company = company
-        self.timestamp = parser.parse(timestamp)
-        self.headline = headline
-        self.article_text = article_text
-    
-    def __repr__(self):
-        return self.company + "; " + str(self.timestamp) + "; " + self.headline
-    
-    def __eq__(self, other):
-        if isinstance(other, Article):
-            return (self.company == other.company and self.timestamp == other.timestamp and
-                self.headline == other.headline)
-        return False
-    
-    def __lt__(self, other):
-        """
-        Comparison operator for sorting Articles by timestamp. 
-        """
-        return self.timestamp < other.timestamp
-    
-    def __hash__(self):
-        return hash(self.__repr__())
-    
-    def elapsed_time_between(self, other):
-        """
-        Returns the amount of time, in seconds, between the publishing 
-        of this Article and another Article, other. 
-        """
-        elapsed_time = self.timestamp - other.timestamp
-        return abs(elapsed_time.total_seconds())
+from measure_constants import MeasureConstants
+from article import Article
+from bow_similarity import BOWSimilarity
 
-def filter_old_articles(company_article_map, curr_article, k_hours=72):
+measure_const = MeasureConstants()
+bow_sim = BOWSimilarity(measure_const)
+
+def filter_old_articles(company_article_map, curr_article, k_hours=measure_const.NUM_HOURS):
     """
     Check the set of articles mapped to curr_article.company, and 
     filter out articles that are at least k_hours older than curr_article. 
@@ -58,22 +31,18 @@ def filter_old_articles(company_article_map, curr_article, k_hours=72):
     curr_company = curr_article.company
     curr_timestamp = curr_article.timestamp
     
-    company_article_set = company_article_map.get(curr_company, "No articles for this company")
+    company_article_set = company_article_map.get(curr_company, False)
     
-    if company_article_set == "No articles for this company":
-        return set([curr_article])
+    if company_article_set == False:
+        return set()
     
-    articles_to_remove = set()
-    for article in company_article_set:
-        if curr_article.elapsed_time_between(article) >= k_seconds:
-            articles_to_remove.add(article)
-            
+    articles_to_remove = {article for article in company_article_set 
+                         if curr_article.elapsed_time_between(article) >= k_seconds}
     company_article_set.difference_update(articles_to_remove)
-    company_article_set.add(curr_article)
     
     return company_article_set  
 
-def create_article_map(filename, k_hours=72):
+def create_article_map_and_measure_csv(filename, output_csv_name, k_hours=measure_const.NUM_HOURS):
     """
     Main parsing function. Takes in a file with .nml extension
     and returns a dictionary with keys that correspond to company symbols,
@@ -82,6 +51,8 @@ def create_article_map(filename, k_hours=72):
     
     Arguments:
         filename: .nml file to parse
+        output_csv_name: Name of .csv file to output with articles and similarity
+            information. 
         k_hours: Argument passed in to filter_old_articles(). Determines
             article filtering. Default is 72, so articles mapped to any
             given company which are at least 72 hours older than the
@@ -94,11 +65,12 @@ def create_article_map(filename, k_hours=72):
     """
     company_article_map = {}
     curr_file_str = ""
+    header_df = pd.DataFrame(columns=["company", "headline", "time", 
+                                     "old_score", "is_reprint", "is_recombination"])
+    header_df.to_csv(output_csv_name, index = False)
+
     with open(filename) as myfile:
-        while True:
-            next_line = next(myfile, "EOF")
-            if next_line == "EOF":
-                break
+        for next_line in myfile:
             curr_file_str += next_line
             if next_line == "</doc>\n":
 
@@ -107,7 +79,7 @@ def create_article_map(filename, k_hours=72):
                 if company is None:
                     curr_file_str = ""
                     continue
-                if company[0].attrib.get('about', 'no about value') != 'Y':
+                if company[0].attrib.get('about', False) != 'Y':
                     curr_file_str = ""
                     continue
                 company = company[0].text
@@ -118,9 +90,25 @@ def create_article_map(filename, k_hours=72):
 
                 new_article = Article(company, timestamp, headline, article_text)
                 company_articles = filter_old_articles(company_article_map, new_article, k_hours)
-                company_article_map[company] = company_articles
-
+                
+                if len(company_articles) == 0:
+                    company_articles.add(new_article)
+                    company_article_map[company] = company_articles
+                    curr_file_str = ""
+                    continue
+                else:
+                    old, closest_neighbor = bow_sim.old_and_closest_neighbor_score(new_article, company_articles)
+                    new_row = [new_article.company, new_article.headline, new_article.timestamp,
+                              old, bow_sim.is_reprint(old, closest_neighbor),
+                              bow_sim.is_recombination(old, closest_neighbor)]
+                    with open(output_csv_name, "a") as f:
+                        csv_writer = csv.writer(f)  
+                        csv_writer.writerow(new_row)
+                    company_articles.add(new_article)
+                    company_article_map[company] = company_articles
+                    
                 curr_file_str = ""
+
     return company_article_map
 
 
