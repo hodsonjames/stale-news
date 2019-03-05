@@ -5,7 +5,9 @@
 """
 Functions that interface with measures directory in repo
 """
-import databases as db
+import pandas as pd
+import statsmodels.formula.api as sm
+import numpy as np
 
 
 def percentageOld(firm, date, mdatabase, oldthreshold=0.6):
@@ -13,7 +15,7 @@ def percentageOld(firm, date, mdatabase, oldthreshold=0.6):
     PctOld for firm on given data (with adjustable threshold for old)
     Uses decimal representation
     Relies on column structure of mdatabase
-    If no match is found return -1 otherwise
+    If no match is found for specified firm on given date return -1 otherwise
     Returns FLOAT
     """
     matches = mdatabase.tdMap.get((firm, date), [])
@@ -28,7 +30,7 @@ def percentageRecombinations(firm, date, mdatabase, oldthreshold=0.6, reprintthr
     PctRecombinations for firm on given data (with adjustable threshold for old and reprint)
     Uses decimal representation
     Relies on column structure of mdatabase
-    If no match is found return -1 otherwise
+    If no match is found for specified firm on given date return -1 otherwise
     Returns FLOAT
     """
     matches = mdatabase.tdMap.get((firm, date), [])
@@ -44,20 +46,84 @@ Additional functions for regression
 """
 
 
-def abnormalPercentageOld(firm, date, file):
+def abnormalPercentageOld(firm, date, mdatabase):
     """
     AbnPctOld for firm on given data
     Uses decimal representation
+    If no match is found for specified firm on given date return -1 otherwise
     Returns FLOAT
     """
+    if (firm, date) not in mdatabase.tdMap:
+        return -1
+    if date not in mdatabase.aporeg:
+        # Run ols regression with all available firms on this date and store result in mdatabase.aporeg
+        pctOldList = []
+        lnStoriesList = []
+        lnTermsList = []
+        lnTermsSqList = []
+        tickers = list(mdatabase.tics.keys())
+        for t in tickers:
+            if (t, date) in mdatabase.tdMap:
+                pctOldList.append(percentageOld(t, date, mdatabase))
+                lnStoriesList.append(np.log(stories(t, date, mdatabase)))
+                lnTermsList.append(np.log(terms(t, date, mdatabase)))
+                lnTermsSqList.append(np.log(terms(t, date, mdatabase)) ** 2)
+        # Create pandas data frame and run regression with statsmodels
+        df = pd.DataFrame({"Y": pctOldList, "B": lnStoriesList, "C": lnTermsList, "D": lnTermsSqList})
+        result = sm.ols(formula="Y ~ B + C + D", data=df).fit()
+        mdatabase.putAPOReg(date, result)
+    firmPctOld = percentageOld(firm, date, mdatabase)
+    firmStories = stories(firm, date, mdatabase)
+    firmTerms = terms(firm, date, mdatabase)
+    regression = mdatabase.aporeg[date]
+    # Get coefficients from regression
+    regIntercept = regression.params.Intercept
+    regB = regression.params.B
+    regC = regression.params.C
+    regD = regression.params.D
+    # Return signed residual
+    regEst = regIntercept + regB * np.log(firmStories) + regC * np.log(firmTerms) + regD * (np.log(firmTerms) ** 2)
+    return firmPctOld - regEst
 
 
-def abnormalPercentageRecombinations(firm, date, file):
+def abnormalPercentageRecombinations(firm, date, mdatabase):
     """
     AbnPctRecombinations for firm on given data
     Uses decimal representation
+    If no match is found for specified firm on given date return -1 otherwise
     Returns FLOAT
     """
+    if (firm, date) not in mdatabase.tdMap:
+        return -1
+    if date not in mdatabase.aprreg:
+        # Run ols regression with all available firms on this date and store result in mdatabase.aprreg
+        pctRecombinationsList = []
+        lnStoriesList = []
+        lnTermsList = []
+        lnTermsSqList = []
+        tickers = list(mdatabase.tics.keys())
+        for t in tickers:
+            if (t, date) in mdatabase.tdMap:
+                pctRecombinationsList.append(percentageRecombinations(t, date, mdatabase))
+                lnStoriesList.append(np.log(stories(t, date, mdatabase)))
+                lnTermsList.append(np.log(terms(t, date, mdatabase)))
+                lnTermsSqList.append(np.log(terms(t, date, mdatabase)) ** 2)
+        # Create pandas data frame and run regression with statsmodels
+        df = pd.DataFrame({"Y": pctRecombinationsList, "B": lnStoriesList, "C": lnTermsList, "D": lnTermsSqList})
+        result = sm.ols(formula="Y ~ B + C + D", data=df).fit()
+        mdatabase.putAPRReg(date, result)
+    firmPctRec = percentageRecombinations(firm, date, mdatabase)
+    firmStories = stories(firm, date, mdatabase)
+    firmTerms = terms(firm, date, mdatabase)
+    regression = mdatabase.aprreg[date]
+    # Get coefficients from regression
+    regIntercept = regression.params.Intercept
+    regB = regression.params.B
+    regC = regression.params.C
+    regD = regression.params.D
+    # Return signed residual
+    regEst = regIntercept + regB * np.log(firmStories) + regC * np.log(firmTerms) + regD * (np.log(firmTerms) ** 2)
+    return firmPctRec - regEst
 
 
 def abnormalReturn(firm, date, file):
@@ -80,12 +146,15 @@ def abnormalReturn(firm, dateStart, dateEnd, file):
     """
 
 
-def firmReturn(firm, date, file):
+def firmReturn(firm, date, pdatabase):
     """
     Returns firm's return on date
     Uses decimal representation
+    Relies on column structure of pdatabase (crsp)
     Returns FLOAT
     """
+    return pdatabase.data['RETX'][pdatabase.data['date'] == date & pdatabase.data['TICKER'] == firm]
+
 
 
 def allFirmsReturn(date, file):

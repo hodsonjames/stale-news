@@ -1,0 +1,5 @@
+Modules used:
+pandas
+statsmodels
+numpy
+scipy
