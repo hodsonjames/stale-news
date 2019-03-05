@@ -1,7 +1,27 @@
 import databases as d
 import utils as u
 
+compustat = d.PandasDatabase("compustatQ.csv")
+"""
+crsp = d.PandasDatabase("crspdaystock.csv", {'PERMNO': 'object', 'date': 'object', 'TICKER': 'object',
+                                             'VOL': 'object', 'SHROUT': 'object', 'OPENPRC': 'object',
+                                             'RETX': 'object', 'vwretx': 'object'})
+"""
+crsp = d.PandasDatabase("crspdaystock.csv")
 db = d.MeasuresDatabase("simulated_data.txt")
+
+"""
+Test: PandasDatabase data functionality
+print("COMPUSTAT: ")
+print(list(compustat.data))
+print(compustat.data.dtypes)
+print(compustat.data.tail(5))
+print("CRSP: ")
+print(list(crsp.data))
+print(crsp.data.dtypes)
+print(crsp.data.tail(5))
+"""
+
 
 """
 Test: MeasuresDatabase tdMap functionality
@@ -21,6 +41,18 @@ count = 0
 for k in db.dates:
     print("DATE: " + k)
     count += 1
+print(count)
+"""
+
+"""
+Test: MeasuresDatabase tics functionality
+count = 0
+# out = ""
+for k in db.tics:
+    print("TIC: " + k)
+    # out += k + " "
+    count += 1
+# print(out)
 print(count)
 """
 
@@ -76,3 +108,38 @@ print("Expected: -1 Actual: " + str(u.abnormalStories("PRGO", "20150421", db)))
 print("Expected: 0.32727272727272727 Actual: " + str(u.abnormalStories("FCAU", "20150730", db)))
 print("Expected: -0.07272727272727272 Actual: " + str(u.abnormalStories("AAPL", "20150721", db)))
 """
+
+
+"""
+Test: abnormalPercentageOld functionality
+tickers = list(db.tics.keys())
+for t in tickers:
+    if (t, "20150421") in db.tdMap:
+        print(t + " AbnPctOld: " + str(u.abnormalPercentageOld(t, "20150421", db)) + "  PctOld: " + str(u.percentageOld(t, "20150421", db)))
+"""
+
+
+"""
+Test: abnormalPercentageOld functionality
+tickers = list(db.tics.keys())
+for t in tickers:
+    if (t, "20150421") in db.tdMap:
+        print(t + " AbnPctOld: " + str(u.abnormalPercentageOld(t, "20150421", db)) + "  PctOld: " + str(u.percentageOld(t, "20150421", db)))
+"""
+
+
+"""
+Test: abnormalPercentageOld functionality
+tickers = list(db.tics.keys())
+for t in tickers:
+    if (t, "20150423") in db.tdMap:
+        print(t + " AbnPctRecombinations: " + str(u.abnormalPercentageRecombinations(t, "20150423", db)) + "  PctRecombinations: " + str(u.percentageRecombinations(t, "20150423", db)))
+"""
+
+
+"""
+Test: firmReturn functionality
+print(u.firmReturn("TSLA", "20150318", crsp))
+"""
+
+

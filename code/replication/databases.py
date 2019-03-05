@@ -2,6 +2,21 @@
 # -------
 # Database types and initialization
 from collections import OrderedDict
+import pandas as pd
+
+
+class PandasDatabase:
+    """
+    Stores database as a pandas data frame
+    """
+
+    def __init__(self, file, datatype=None):
+        """
+        Takes a file name and creates a data frame for the corresponding file with
+        given data types
+        datatype is a dictionary mapping column name to pandas type
+        """
+        self.data = pd.read_csv(file, dtype=datatype)
 
 
 class TextDatabase:
@@ -13,7 +28,7 @@ class TextDatabase:
 
     def __init__(self, file):
         """
-        Takes a file name and return a TextDatabase for the corresponding file
+        Takes a file name and creates a TextDatabase for the corresponding file
         """
         with open(file) as f:
             lines = [line.rstrip('\n').split(',') for line in f]
@@ -54,12 +69,20 @@ class MeasuresDatabase(TextDatabase):
         """
         Populates the measures database and creates:
         1. self.dates: Ordered Dictionary of all dates where key = date, value = None
+        2. self.tics: Ordered Dictionary (NOT SORTED) of all tickers where key = ticker, value = None
         2. self.tdMap: Dictionary mapping each (ticker, date) tuple to list of relevant news articles
+        3. self.aporeg: Empty dictionary for saving AbnPctOld regressions, maps date to regression
+        4. self.aprreg: Empty dictionary for saving AbnPctRecombination regressions, maps date to regression
         """
         super().__init__(file)
-        self.dates = {}
+        self.dates = OrderedDict()
+        self.tics = {}
         self.tdMap = {}
+        self.aporeg = {}
+        self.aprreg = {}
         for row in self.database:
+            if row[1] not in self.tics:
+                self.tics[row[1]] = None
             if row[2] not in self.dates:
                 self.dates[row[2]] = None
             if (row[1], row[2]) in self.tdMap:
@@ -67,3 +90,29 @@ class MeasuresDatabase(TextDatabase):
             else:
                 self.tdMap[(row[1], row[2])] = [row]
         self.dates = OrderedDict(sorted(self.dates.items(), key=lambda t: t[0]))
+
+    def putAPOReg(self, date, ols):
+        """
+        puts date: ols entry in self.aporeg
+        """
+        self.aporeg[date] = ols
+
+    def removeAPOReg(self, date):
+        """
+        removes entry for date in self.aporeg
+        """
+        del self.aporeg[date]
+
+    def putAPRReg(self, date, ols):
+        """
+        puts date: ols entry in self.aprreg
+        """
+        self.aprreg[date] = ols
+
+    def removeAPRReg(self, date):
+        """
+        removes entry for date in self.aprreg
+        """
+        del self.aprreg[date]
+
+
