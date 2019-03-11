@@ -386,3 +386,112 @@ else:
     print("Expected: -1 Actual: " + str(u.abnormalVol(firm, dateStart, dateEnd, crsp)))
 """
 
+
+"""
+Test: abnormalVolatilityDate functionality
+firm = "ORCL"
+date = "20000131"
+print("Expected: 0.04742965 Actual: " + str(u.abnormalVolatilityDate(firm, date, crsp)))
+firm = "MSFT"
+date = "20181231"
+print("Expected: 0.01184607 Actual: " + str(u.abnormalVolatilityDate(firm, date, crsp)))
+firm = "FAKE"
+date = "20000201"
+print("Expected: -1 Actual: " + str(u.abnormalVolatilityDate(firm, date, crsp)))
+firm = "ORCL"
+date = "20000201"
+print("Output: " + str(u.abnormalVolatilityDate(firm, date, crsp)))
+"""
+
+
+"""
+Test: abnormalVolatility functionality
+firm = "ORCL"
+dateStart = "20000131"
+dateEnd = "20000131"
+print("Expected: 0.04742965 Actual: " + str(u.abnormalVolatility(firm, dateStart, dateEnd, crsp)))
+firm = "ORCL"
+dateStart = "20000131"
+dateEnd = "20000201"
+print("Expected: 0.04770185327 Actual: " + str(u.abnormalVolatility(firm, dateStart, dateEnd, crsp)))
+firm = "TSLA"
+dateStart = "20100629"
+dateEnd = "20181231"
+print("Expected: -1 Actual: " + str(u.abnormalVolatility(firm, dateStart, dateEnd, crsp)))
+firm = "TSLA"
+dateStart = "20100630"
+dateEnd = "20181231"
+print("Expected: -1 Actual: " + str(u.abnormalVolatility(firm, dateStart, dateEnd, crsp)))
+"""
+
+
+"""
+Test: illiquidityMeasureDate functionality
+firm = "ORCL"
+date = "20000103"
+print("Expected: 0.00217861607 Actual: " + str(u.illiquidityMeasureDate(firm, date, crsp)))
+firm = "TSLA"
+date = "20181231"
+print("Expected: 0.00050854143 Actual: " + str(u.illiquidityMeasureDate(firm, date, crsp)))
+firm = "FAKE"
+date = "20181231"
+print("Expected: -1 Actual: " + str(u.illiquidityMeasureDate(firm, date, crsp)))
+"""
+
+"""
+Test: illiquidity functionality
+firm = "ORCL"
+dateStart = "20000103"
+dateEnd = "20000107"
+print("Expected: -6.04533093855 Actual: " + str(u.illiquidity(firm, dateStart, dateEnd, crsp)))
+firm = "TSLA"
+dateStart = "20181221"
+dateEnd = "20181228"
+print("Expected: -4.895823432117689 Actual: " + str(u.illiquidity(firm, dateStart, dateEnd, crsp)))
+firm = "ORCL"
+dateStart = "20000102"
+dateEnd = "20000103"
+print("Expected: -1 Actual: " + str(u.illiquidity(firm, dateStart, dateEnd, crsp)))
+"""
+
+
+"""
+Test: bookValue functionality
+firm = "ORCL"
+date = "20000531"
+print("Expected: 3984288000.0 Actual: " + str(u.bookValue(firm, date, compustat)))
+firm = "AAL"
+date = "20181231"
+print("Expected: -568000000.0 Actual: " + str(u.bookValue(firm, date, compustat)))
+firm = "FAKE"
+date = "20181231"
+print("Expected: -1 Actual: " + str(u.bookValue(firm, date, compustat)))
+"""
+
+
+"""
+Test: bookToMarketCap functionality
+firm = "ORCL"
+date = "20000531"
+print("Expected: 0.01937368311 Actual: " + str(u.bookToMarketCap(firm, date, crsp, compustat)))
+firm = "ORCL"
+date = "20000103"
+print("Expected: -1 Actual: " + str(u.bookToMarketCap(firm, date, crsp, compustat)))
+firm = "TSLA"
+date = "20181231"
+print("Expected: 0.07772559827 Actual: " + str(u.bookToMarketCap(firm, date, crsp, compustat)))
+"""
+
+
+"""
+Test: generateXList functionality
+firm = "AAPL"
+date = "20150721"
+print("Output: " + str(u.generateXList(firm, date, db, crsp, compustat)))
+"""
+
+
+
+
+
+

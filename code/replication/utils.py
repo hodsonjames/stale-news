@@ -41,11 +41,6 @@ def percentageRecombinations(firm, date, mdatabase, oldthreshold=0.6, reprintthr
     return recomCount / len(matches)
 
 
-"""
-Additional functions for regression
-"""
-
-
 def abnormalPercentageOld(firm, date, mdatabase):
     """
     AbnPctOld for firm on given data
@@ -131,6 +126,7 @@ def abnormalReturnDate(firm, date, pdatabase, printWarnings=True):
     Difference between firm i's return on date and return on value-weighted
     index of all firms in universe on date
     Uses decimal representation
+    Relies on naming of pdatabase (crsp)
     Returns -1 if no data available
     Returns FLOAT
     """
@@ -408,54 +404,221 @@ def totalMarketCap(date, pdatabase, printWarnings=True):
     return totalMarketCaps, includedTickers
 
 
-def bookToMarketCap(firm, date, file):
+def bookToMarketCap(firm, date, pdatabase1, pdatabase2, printWarnings=True):
     """
     Ratio of firm's book value as of latest quarterly earnings report preceding date
     to its market capitalization as of market open on date
+    Relies on contents of databases
+    pdatabase1: crsp
+    pdatabase2: compustat
+    Returns -1 if no data available
     Returns FLOAT
     """
+    book = bookValue(firm, date, pdatabase2, printWarnings)
+    mcap = marketCap(firm, date, pdatabase1, printWarnings)
+    if book == -1 or mcap == -1:
+        return -1
+    return book / mcap
+
+
+def bookValue(firm, date, pdatabase, printWarnings=True, bookUnit=1000000):
+    """
+    Firm's book value as of latest quarterly earnings report preceding date
+    Relies on naming of pdatabase (compustat) and chronological data for each firm
+    Returns -1 if no data available
+    Returns FLOAT
+    """
+    bookQuery = pdatabase.data.query('(tic == "' + firm + '") & (datadate < ' + date + ')')
+    # print(bookQuery)
+    if bookQuery.empty:
+        if printWarnings:
+            print("NO BOOK DATA: " + firm + ", " + date)
+        return -1
+    bookSeries = bookQuery["ceqq"]
+    return float(bookSeries.iat[bookSeries.size - 1] * bookUnit)
 
 
 def abnormalVolatilityDate(firm, date, pdatabase, printWarnings=True):
     """
-    Standard Deviation of abnormal returns for 20 business days prior (ending on and including date given)
+    Population standard deviation of abnormal returns for 20 business days prior (ending on and including date given)
+    Relies on naming of pdatabase (crsp)
+    Return -1 if dates not compatible or if no data available
     Returns FLOAT
     """
+    if not pdatabase.dates:
+        pdatabase.recordDates("date")  # "date" is a col name in crsp
+    if (int(date) not in pdatabase.dates) or (pdatabase.dates.index(int(date)) - 19) < 0:
+        if printWarnings:
+            print("DATE NOT COMPATIBLE: " + date)
+        return -1
+    dateInd = pdatabase.dates.index(int(date))
+    dateLess19 = dateInd - 19
+    abnRets = []
+    for i in range(dateInd - dateLess19 + 1):
+        abnRet = abnormalReturnDate(firm, str(pdatabase.dates[dateLess19 + i]), pdatabase, printWarnings)
+        if abnRet == -1:
+            return -1
+        abnRets.append(abnRet)
+    # print(abnRets)
+    return np.std(abnRets)
 
 
 def abnormalVolatility(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
     """
-    Average of AbnVolitility for each date in [dateStart, dateEnd]
+    Average of AbnVolitility for days in [dateStart, dateEnd]
+    Relies on naming of pdatabase (crsp)
+    Return -1 if dates not compatible or if no data available
     Returns FLOAT
     """
+    if not pdatabase.dates:
+        pdatabase.recordDates("date")  # "date" is a col name in crsp
+    if (int(dateStart) not in pdatabase.dates) or (int(dateEnd) not in pdatabase.dates) or (dateStart > dateEnd):
+        if printWarnings:
+            print("DATE NOT COMPATIBLE: " + dateStart + ", " + dateEnd)
+        return -1
+    dateStartInd = pdatabase.dates.index(int(dateStart))
+    dateEndInd = pdatabase.dates.index(int(dateEnd))
+    sumAbVolit = 0.0
+    for i in range(dateEndInd - dateStartInd + 1):
+        avolitdate = abnormalVolatilityDate(firm, str(pdatabase.dates[dateStartInd + i]), pdatabase, printWarnings)
+        if avolitdate == -1:
+            return -1
+        sumAbVolit += avolitdate
+    return sumAbVolit / (dateEndInd - dateStartInd + 1)
 
 
-def illiquidityDate(firm, date, pdatabase, printWarnings=True):
+def illiquidityMeasureDate(firm, date, pdatabase, printWarnings=True):
     """
-    LN of the illiquidity measure from Amihud, computed as the prior-week average of
     10**6 * |Ret(firm,date)| / Volume(firm,date)
+    Relies on naming of pdatabase (crsp)
+    Return -1 if no data available
     Returns FLOAT
     """
+    ret = firmReturn(firm, date, pdatabase, printWarnings)
+    vol = firmVolume(firm, date, pdatabase, printWarnings)
+    if ret == -1 or vol == -1:
+        return -1
+    return 10**6 * abs(ret) / vol
 
 
 def illiquidity(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
     """
-    LN of the illiquidity measure from Amihud, computed as the prior-week average of
+    LN of the illiquidity measure from Amihud, computed as the average over [dateStart, dateEnd] of
     10**6 * |Ret(firm,date)| / Volume(firm,date)
+    Relies on naming of pdatabase (crsp)
+    Return -1 if dates not compatible or if no data available
     Returns FLOAT
     """
+    if not pdatabase.dates:
+        pdatabase.recordDates("date")  # "date" is a col name in crsp
+    if (int(dateStart) not in pdatabase.dates) or (int(dateEnd) not in pdatabase.dates) or (dateStart > dateEnd):
+        if printWarnings:
+            print("DATE NOT COMPATIBLE: " + dateStart + ", " + dateEnd)
+        return -1
+    dateStartInd = pdatabase.dates.index(int(dateStart))
+    dateEndInd = pdatabase.dates.index(int(dateEnd))
+    illMeaSum = 0.0
+    for i in range(dateEndInd - dateStartInd + 1):
+        illMea = illiquidityMeasureDate(firm, str(pdatabase.dates[dateStartInd + i]), pdatabase, printWarnings)
+        if illMea == -1:
+            return -1
+        illMeaSum += illMea
+    return np.log(illMeaSum / (dateEndInd - dateStartInd + 1))
 
 
-def generateXVector(firm, data, file):
+def generateXList(firm, date, mdatabase, pdatabase1, pdatabase2, printWarnings=True):
     """
-    Creates 9 x 1 vector of controls for a firm including:
-        1. Storiesi,t
-        2. AbnStoriesi,[t-5,t-1]
-        3. Termsi,t
-        4. MCapi,t
-        5. BMi,t
-        6. AbnReti,[t-5,t-1]
-        7. AbnVoli,[t-5,t-1]
-        8. AbnVolitilityi,[t-5,t-1]
-        9. Illiqi,[t-5,t-1]
+    Relies on contents of all databases
+    pdatabase1: crsp
+    pdatabase2: compustat
+    Returns list of controls for a firm including:
+        0: Storiesi,t
+        1: AbnStoriesi,[t-5,t-1]
+        2: Termsi,t
+        3: MCapi,t
+        4: BMi,t
+        5: AbnReti,[t-5,t-1]
+        6: AbnVoli,[t-5,t-1]
+        7: AbnVolitilityi,[t-5,t-1]
+        8: Illiqi,[t-5,t-1]
+    Return -1 if dates not compatible or if no data available
     """
+    xlist = []
+    # 0
+    if printWarnings:
+        print("Entry 0 Computing...")
+    xstories = stories(firm, date, mdatabase)
+    xlist.append(xstories)
+    # 1
+    if printWarnings:
+        print("Entry 1 Computing...")
+    xabnstories = abnormalStories(firm, date, mdatabase)
+    if xabnstories == -1:
+        return -1
+    xlist.append(xabnstories)
+    # 2
+    if printWarnings:
+        print("Entry 2 Computing...")
+    xterms = terms(firm, date, mdatabase)
+    if xterms == -1:
+        return -1
+    xlist.append(xterms)
+    # 3
+    if printWarnings:
+        print("Entry 3 Computing...")
+    xmcap = marketCapLN(firm, date, pdatabase1, printWarnings)
+    if xmcap == -1:
+        return -1
+    xlist.append(xmcap)
+    # 4
+    if printWarnings:
+        print("Entry 4 Computing...")
+    xbm = bookToMarketCap(firm, date, pdatabase1, pdatabase2, printWarnings)
+    if xbm == -1:
+        return -1
+    xlist.append(xbm)
+    # 5
+    if printWarnings:
+        print("Entry 5 Computing...")
+    if not pdatabase1.dates:
+        pdatabase1.recordDates("date")  # "date" is a col name in crsp
+    if (int(date) not in pdatabase1.dates) or (pdatabase1.dates.index(int(date)) - 5) < 0:
+        if printWarnings:
+            print("DATE NOT COMPATIBLE: " + date)
+        return -1
+    dateLess1 = pdatabase1.dates.index(int(date)) - 1
+    dateLess5 = dateLess1 - 4
+    dateStartLess5 = str(pdatabase1.dates[dateLess5])
+    dateEndLess1 = str(pdatabase1.dates[dateLess1])
+    xabnret = abnormalReturn(firm, dateStartLess5, dateEndLess1, pdatabase1, printWarnings)
+    if xabnret == -1:
+        return -1
+    xlist.append(xabnret)
+    # 6
+    if printWarnings:
+        print("Entry 6 Computing...")
+    xabnvol = abnormalVol(firm, dateStartLess5, dateEndLess1, pdatabase1, printWarnings)
+    if xabnvol == -1:
+        return -1
+    xlist.append(xabnvol)
+    # 7
+    if printWarnings:
+        print("Entry 7 Computing...")
+    xabnvolit = abnormalVolatility(firm, dateStartLess5, dateEndLess1, pdatabase1, printWarnings)
+    if xabnvolit == -1:
+        return -1
+    xlist.append(xabnvolit)
+    # 8
+    if printWarnings:
+        print("Entry 8 Computing...")
+    xilliq = illiquidity(firm, dateStartLess5, dateEndLess1, pdatabase1, printWarnings)
+    if xilliq == -1:
+        return -1
+    xlist.append(xilliq)
+    # Return
+    return xlist
+
+
+
+
+
