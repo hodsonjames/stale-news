@@ -6,14 +6,14 @@ Indented functions MAY be used by functions housing them (to their immediate lef
 #N indicates function overloading.
 
 famaMacBethRegression()
-	> abnormalReturn() #1
+	> abnormalReturnDate()
 		>> firmReturn()
 		>> allFirmsReturn()
-	> abnormalReturn() #2
-			>>> abnormalReturn() #1
+	> abnormalReturn()
+			>>> abnormalReturnDate()
 				>>>> firmReturn()
 				>>>> allFirmsReturn()
-	> abnormalVol() #1
+	> abnormalVolDate()
 		>> firmVolume()
 		>> allFirmsVolume()
 	> abnormalPercentageOld()
@@ -28,12 +28,12 @@ famaMacBethRegression()
 		>> marketCap()
 		>> bookToMarketCap()
 			>>> marketCap()
-		>> abnormalReturn() #2
-			>>> abnormalReturn() #1
+		>> abnormalReturn()
+			>>> abnormalReturnDate()
 				>>>> firmReturn()
 				>>>> allFirmsReturn()
-		>> abnormalVol() #2
-			>>> abnormalVol() #1
+		>> abnormalVol()
+			>>> abnormalVolDate()
 				>>>> firmVolume()
 				>>>> allFirmsVolume()
 		>> abnormalVolatility()
