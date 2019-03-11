@@ -126,80 +126,178 @@ def abnormalPercentageRecombinations(firm, date, mdatabase):
     return firmPctRec - regEst
 
 
-def abnormalReturn(firm, date, file):
+def abnormalReturnDate(firm, date, pdatabase, printWarnings=True):
     """
-    #1
     Difference between firm i's return on date and return on value-weighted
     index of all firms in universe on date
     Uses decimal representation
+    Returns -1 if no data available
     Returns FLOAT
     """
-    return firmReturn(firm, date, file) - allFirmsReturn(date, file)
+    fret = firmReturn(firm, date, pdatabase, printWarnings)
+    aret = allFirmsReturn(date, pdatabase, printWarnings)
+    if fret == -1 or aret == -1:
+        return -1
+    return fret - aret
 
 
-def abnormalReturn(firm, dateStart, dateEnd, file):
+def abnormalReturn(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
     """
-    #2
     Cumulative abnormal returns for firm over [dateStart, dateEnd]
     Uses decimal representation
+    Relies on naming of pdatabase (crsp)
+    Return -1 if dates not compatible or if no data available
     Returns FLOAT
     """
+    if not pdatabase.dates:
+        pdatabase.recordDates("date")  # "date" is a col name in crsp
+    if (int(dateStart) not in pdatabase.dates) or (int(dateEnd) not in pdatabase.dates) or (dateStart > dateEnd):
+        if printWarnings:
+            print("DATE NOT COMPATIBLE: " + dateStart + ", " + dateEnd)
+        return -1
+    dateStartInd = pdatabase.dates.index(int(dateStart))
+    dateEndInd = pdatabase.dates.index(int(dateEnd))
+    sumAbRet = 0.0
+    for i in range(dateEndInd - dateStartInd + 1):
+        aretdate = abnormalReturnDate(firm, str(pdatabase.dates[dateStartInd + i]), pdatabase, printWarnings)
+        if aretdate == -1:
+            return -1
+        sumAbRet += aretdate
+    return sumAbRet
 
 
-def firmReturn(firm, date, pdatabase):
+def firmReturn(firm, date, pdatabase, printWarnings=True):
     """
     Returns firm's return on date
     Uses decimal representation
-    Relies on column structure of pdatabase (crsp)
+    Relies on naming of pdatabase (crsp)
+    Returns -1 if no data available
     Returns FLOAT
     """
-    return pdatabase.data['RETX'][pdatabase.data['date'] == date & pdatabase.data['TICKER'] == firm]
+    retQuery = pdatabase.data.query('(TICKER == "' + firm + '") & (date == "' + date + '")')
+    if retQuery.empty:
+        if printWarnings:
+            print("NO RETURN DATA: " + firm + ", " + date)
+        return -1
+    return float(retQuery["RETX"].iat[0])
 
 
-
-def allFirmsReturn(date, file):
+def allFirmsReturn(date, pdatabase, printWarnings=True):
     """
     Return on value-weighted index of all firms in universe on date
     Uses decimal representation
+    Relies on naming of pdatabase (crsp)
+    Returns -1 if no data available
     Returns FLOAT
     """
+    aRetQuery = pdatabase.data.query('date == "' + date + '"')
+    if aRetQuery.empty:
+        if printWarnings:
+            print("NO WEIGHTED RETURN DATA: " + date)
+        return -1
+    return float(aRetQuery["vwretx"].iat[0])
 
 
-def abnormalVol(firm, date, file):
+def abnormalVolDate(firm, date, pdatabase, printWarnings=True):
     """
-    #1
     Abnormal trading volume for firm on date defined as difference between the
     fraction of shares turned over for firm on date, and the value-weighted average
     of the fraction of shares turned over for all firms in universe on date
     Uses decimal representation
+    Relies on naming of pdatabase (crsp)
+    Returns -1 if no data available
     Returns FLOAT
     """
-    return firmVolume(firm, date, file) - allFirmsVolume(date, file)
+    fVolFrac = firmVolumeFrac(firm, date, pdatabase, printWarnings)
+    afVolFrac = allFirmsVolumeFrac(date, pdatabase, printWarnings)
+    if fVolFrac == -1 or afVolFrac == -1:
+        return -1
+    return fVolFrac - afVolFrac
 
 
-def abnormalVol(firm, dateStart, dateEnd, file):
+def abnormalVol(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
     """
-    #2
-    Average abnormal trading volume for firm over [dateStart, dateEnd]
+    Average abnormal trading volume (fraction) for firm over [dateStart, dateEnd]
     Uses decimal representation
+    Relies on naming of pdatabase (crsp)
+    Return -1 if dates not compatible or if no data available
     Returns FLOAT
     """
+    if not pdatabase.dates:
+        pdatabase.recordDates("date")  # "date" is a col name in crsp
+    if (int(dateStart) not in pdatabase.dates) or (int(dateEnd) not in pdatabase.dates) or (dateStart > dateEnd):
+        if printWarnings:
+            print("DATE NOT COMPATIBLE: " + dateStart + ", " + dateEnd)
+        return -1
+    dateStartInd = pdatabase.dates.index(int(dateStart))
+    dateEndInd = pdatabase.dates.index(int(dateEnd))
+    sumAbVol = 0.0
+    for i in range(dateEndInd - dateStartInd + 1):
+        avoldate = abnormalVolDate(firm, str(pdatabase.dates[dateStartInd + i]), pdatabase, printWarnings)
+        if avoldate == -1:
+            return -1
+        sumAbVol += avoldate
+    return sumAbVol / (dateEndInd - dateStartInd + 1)
 
 
-def firmVolume(firm, date, file):
+def firmVolume(firm, date, pdatabase, printWarnings=True):
     """
     Firm's volume on date
     Uses decimal representation
+    Relies on naming of pdatabase (crsp)
+    Returns -1 if no data available
     Returns FLOAT
     """
+    volQuery = pdatabase.data.query('(TICKER == "' + firm + '") & (date == "' + date + '")')
+    if volQuery.empty:
+        if printWarnings:
+            print("NO VOLUME DATA: " + firm + ", " + date)
+        return -1
+    return float(volQuery["VOL"].iat[0])
 
 
-def allFirmsVolume(date, file):
+def firmVolumeFrac(firm, date, pdatabase, printWarnings=True, sharesUnit=1000):
     """
-    Volume of value-weighted index of all firms in universe on date
+    Fraction of shares turned over for firm on date
     Uses decimal representation
+    Relies on naming of pdatabase (crsp)
+    Returns -1 if no data available
     Returns FLOAT
     """
+    volume = firmVolume(firm, date, pdatabase, printWarnings)
+    sharesQuery = pdatabase.data.query('(TICKER == "' + firm + '") & (date == "' + date + '")')
+    if sharesQuery.empty or volume == -1:
+        if sharesQuery.empty and printWarnings:
+            print("NO SHARES DATA: " + firm + ", " + date)
+        return -1
+    # SHROUT in thousands
+    sharesOutstanding = float(sharesQuery["SHROUT"].iat[0])
+    return volume/(sharesOutstanding * sharesUnit)
+
+
+def allFirmsVolumeFrac(date, pdatabase, printWarnings=True):
+    """
+    Value-weighted average of the fraction of shares turnover for all firms in our sample
+    Uses decimal representation
+    Relies on naming of pdatabase (crsp), auxiliaryMap with date:value_weighted_volume
+    Returns -1 if no data available
+    Returns FLOAT
+    """
+    if date in pdatabase.auxiliaryMap:
+        return pdatabase.auxiliaryMap[date]
+    tmcapTuple = totalMarketCap(date, pdatabase, printWarnings)
+    totMCap = tmcapTuple[0]
+    relevantFirms = tmcapTuple[1]
+    if totMCap == -1:
+        return -1
+    weightedVolumeFrac = 0.0
+    for tic in relevantFirms:
+        ticMCap = marketCap(tic, date, pdatabase)
+        ticVolFrac = firmVolumeFrac(tic, date, pdatabase)
+        weightedVolumeFrac += (ticMCap / totMCap) * ticVolFrac
+    # save the computation for repeated use
+    pdatabase.auxiliaryMap[date] = weightedVolumeFrac
+    return weightedVolumeFrac
 
 
 def stories(firm, date, mdatabase):
@@ -247,11 +345,67 @@ def terms(firm, date, mdatabase):
     return sum([float(row[6]) for row in matches]) / len(matches)
 
 
-def marketCap(firm, date, file):
+def marketCap(firm, date, pdatabase, printWarnings=True, sharesUnit=1000):
     """
-    LN market capitalization of firm as of market open on date
+    Market capitalization of firm as of market open on date
+    Relies on naming of pdatabase (crsp)
+    Returns -1 if no data available
     Returns FLOAT
     """
+    priceQuery = pdatabase.data.query('(TICKER == "' + firm + '") & (date == "' + date + '")')
+    sharesQuery = pdatabase.data.query('(TICKER == "' + firm + '") & (date == "' + date + '")')
+    if priceQuery.empty or sharesQuery.empty:
+        if printWarnings:
+            if priceQuery.empty:
+                print("NO PRICE DATA: " + firm + ", " + date)
+            if sharesQuery.empty:
+                print("NO SHARES DATA: " + firm + ", " + date)
+        return -1
+    price = float(priceQuery["OPENPRC"].iat[0])
+    # SHROUT in thousands
+    sharesOutstanding = float(sharesQuery["SHROUT"].iat[0])
+    # print(price)
+    # print(sharesOutstanding)
+    return price * sharesOutstanding * sharesUnit
+
+
+def marketCapLN(firm, date, pdatabase, printWarnings=True):
+    """
+    LN market capitalization of firm as of market open on date
+    Relies on naming of pdatabase (crsp)
+    Returns -1 if no data available
+    Returns FLOAT
+    """
+    mcap = marketCap(firm, date, pdatabase, printWarnings)
+    if mcap == -1:
+        return -1
+    return np.log(mcap)
+
+
+def totalMarketCap(date, pdatabase, printWarnings=True):
+    """
+    Sum market capitalization of all firms available in data as of market open on date
+    Relies on naming of pdatabase (crsp)
+    Returns (-1, []) if no data available
+    Returns (FLOAT, includedTickers)
+    """
+    totalMarketCaps = 0.0
+    includedTickers = []
+    missingTickers = []
+    if not pdatabase.tics:
+        pdatabase.recordTickers("TICKER")  # "TICKER" is a col name in crsp
+    for tic in pdatabase.tics:
+        ticMCap = marketCap(tic, date, pdatabase, False)
+        if ticMCap == -1:
+            missingTickers.append(tic)
+        else:
+            includedTickers.append(tic)
+            totalMarketCaps += ticMCap
+    if printWarnings:
+        print("TICKERS MISSING IN TOTAL: " + str(missingTickers))
+        if not includedTickers:
+            return -1, []
+    return totalMarketCaps, includedTickers
 
 
 def bookToMarketCap(firm, date, file):
@@ -262,15 +416,29 @@ def bookToMarketCap(firm, date, file):
     """
 
 
-def abnormalVolatility(firm, dateStart, dateEnd, file):
+def abnormalVolatilityDate(firm, date, pdatabase, printWarnings=True):
     """
-    Difference between firm's volatility and value-weighted average volatility of all firms
-    over [dateStart, dateEnd]
+    Standard Deviation of abnormal returns for 20 business days prior (ending on and including date given)
     Returns FLOAT
     """
 
 
-def illiquidity(firm, dateStart, dateEnd, file):
+def abnormalVolatility(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
+    """
+    Average of AbnVolitility for each date in [dateStart, dateEnd]
+    Returns FLOAT
+    """
+
+
+def illiquidityDate(firm, date, pdatabase, printWarnings=True):
+    """
+    LN of the illiquidity measure from Amihud, computed as the prior-week average of
+    10**6 * |Ret(firm,date)| / Volume(firm,date)
+    Returns FLOAT
+    """
+
+
+def illiquidity(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
     """
     LN of the illiquidity measure from Amihud, computed as the prior-week average of
     10**6 * |Ret(firm,date)| / Volume(firm,date)

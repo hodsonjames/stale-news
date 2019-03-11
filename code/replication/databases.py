@@ -14,9 +14,32 @@ class PandasDatabase:
         """
         Takes a file name and creates a data frame for the corresponding file with
         given data types
-        datatype is a dictionary mapping column name to pandas type
+        datatype is an optional dictionary mapping column name to pandas type
+        1. self.tics: list of contained tickers (initially empty)
+        2. self.dates: list of contained dates (initially empty)
+        3. self.auxiliaryMap: empty dictionary for flexible use (ex: an optional map with date:value_weighted_volume)
         """
-        self.data = pd.read_csv(file, dtype=datatype)
+        self.data = pd.read_csv(file, dtype=datatype, low_memory=False)
+        # Drop incomplete rows
+        self.data.dropna(inplace=True)
+        self.tics = []
+        self.dates = []
+        self.auxiliaryMap = {}
+
+    def recordTickers(self, colName):
+        """
+        Creates a list of all unique tickers in the data saved in self.tics
+        colName: name of ticker column
+        """
+        self.tics = self.data[colName].unique().tolist()
+
+    def recordDates(self, colName):
+        """
+        Creates a sorted list of all dates in the data saved in self.dates
+        colName: name of date column
+        """
+        self.dates = self.data[colName].unique().tolist()
+        self.dates.sort()
 
 
 class TextDatabase:
