@@ -29,7 +29,6 @@ def filter_old_articles(company_article_map, curr_article, k_hours=measure_const
     
     k_seconds = k_hours * 60 * 60
     curr_company = curr_article.company
-    curr_timestamp = curr_article.timestamp
     
     company_article_set = company_article_map.get(curr_company, False)
     
@@ -42,15 +41,18 @@ def filter_old_articles(company_article_map, curr_article, k_hours=measure_const
     
     return company_article_set  
 
-def create_article_map_and_measure_csv(filename, output_csv_name, k_hours=measure_const.NUM_HOURS):
+# 
+
+############### CHANGE THE NAME OF THIS ######################
+def create_article_map(directory_path, output_csv_name, k_hours=measure_const.NUM_HOURS):
     """
-    Main parsing function. Takes in a file with .nml extension
+    Main parsing function. Takes in a directory containing .nml files
     and returns a dictionary with keys that correspond to company symbols,
     and values that are sets of Article objects whose articles are about
     that company. 
     
     Arguments:
-        filename: .nml file to parse
+        directory_path: A string representing the filepath for directory containing .nml files to parse. 
         output_csv_name: Name of .csv file to output with articles and similarity
             information. 
         k_hours: Argument passed in to filter_old_articles(). Determines
@@ -69,46 +71,54 @@ def create_article_map_and_measure_csv(filename, output_csv_name, k_hours=measur
                                      "old_score", "is_reprint", "is_recombination"])
     header_df.to_csv(output_csv_name, index = False)
 
-    with open(filename) as myfile:
-        for next_line in myfile:
-            curr_file_str += next_line
-            if next_line == "</doc>\n":
+    f = open(output_csv_name, "a")
+    csv_writer = csv.writer(f)
 
-                xml_elem = ET.fromstring(curr_file_str)
-                company = xml_elem.find(".//djn-company-sig")
-                if company is None:
-                    curr_file_str = ""
-                    continue
-                if company[0].attrib.get('about', False) != 'Y':
-                    curr_file_str = ""
-                    continue
-                company = company[0].text
-                timestamp = xml_elem.find(".//djn-mdata").attrib['display-date']
-                headline = xml_elem.find(".//headline").text
-                all_text = xml_elem.find(".//text")
-                article_text = "".join(all_text.itertext())
+    directory = os.fsencode(directory_path)
+    
+    for file in os.listdir(directory):
+        filename = os.fsdecode(file)
 
-                new_article = Article(company, timestamp, headline, article_text)
-                company_articles = filter_old_articles(company_article_map, new_article, k_hours)
-                
-                if len(company_articles) == 0:
-                    company_articles.add(new_article)
-                    company_article_map[company] = company_articles
-                    curr_file_str = ""
-                    continue
-                else:
-                    old, closest_neighbor = bow_sim.old_and_closest_neighbor_score(new_article, company_articles)
-                    new_row = [new_article.company, new_article.headline, new_article.timestamp,
-                              old, bow_sim.is_reprint(old, closest_neighbor),
-                              bow_sim.is_recombination(old, closest_neighbor)]
-                    with open(output_csv_name, "a") as f:
-                        csv_writer = csv.writer(f)  
-                        csv_writer.writerow(new_row)
-                    company_articles.add(new_article)
-                    company_article_map[company] = company_articles
+        with open(filename) as myfile:
+            for next_line in myfile:
+                curr_file_str += next_line
+                if next_line == "</doc>\n":
+
+                    xml_elem = ET.fromstring(curr_file_str)
+                    company = xml_elem.find(".//djn-company-sig")
+                    if company is None:
+                        curr_file_str = ""
+                        continue
+                    if company[0].attrib.get('about', False) != 'Y':
+                        curr_file_str = ""
+                        continue
+                    company = company[0].text
+                    timestamp = xml_elem.find(".//djn-mdata").attrib['display-date']
+                    headline = xml_elem.find(".//headline").text
+                    all_text = xml_elem.find(".//text")
+                    article_text = "".join(all_text.itertext())
+                    text_stemmed_filtered = stem_and_filter(article_text)
+
+                    new_article = Article(company, timestamp, headline, text_stemmed_filtered)
+                    company_articles = filter_old_articles(company_article_map, new_article, k_hours)
                     
-                curr_file_str = ""
+                    if len(company_articles) == 0:
+                        company_articles.add(new_article)
+                        company_article_map[company] = company_articles
+                        curr_file_str = ""
+                        continue
+                    else:
+                        old, closest_neighbor = bow_sim.old_and_closest_neighbor_score(new_article, company_articles)
+                        new_row = [new_article.company, new_article.headline, new_article.timestamp,
+                                  old, bow_sim.is_reprint(old, closest_neighbor),
+                                  bow_sim.is_recombination(old, closest_neighbor)]
+                        csv_writer.writerow(new_row)
 
+                        company_articles.add(new_article)
+                        company_article_map[company] = company_articles
+                        
+                    curr_file_str = ""
+    f.close()
     return company_article_map
 
 

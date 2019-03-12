@@ -7,6 +7,8 @@ class Article:
         self.company = company
         self.timestamp = parser.parse(timestamp)
         self.headline = headline
+
+        # article_text should be stemmed and filtered articles
         self.article_text = article_text
     
     def __repr__(self):

@@ -7,14 +7,25 @@ import datetime
 from nltk.stem import PorterStemmer 
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
+from nltk import ngrams, FreqDist
 
 stop_words = set(stopwords.words('english'))
 ps = PorterStemmer()
 
-class BOWSimilarity:
+class CosineSimilarity:
 
     def __init__(self, measure_const = MeasureConstants()):
         self.measure_const = measure_const
+
+    def term_frequency(article_text):
+    	"""
+    	Arguments:
+    		article_text: A set containing all of the stemmed words in an article.
+
+    	Returns: a vector representing term frequencies for each word in the article.
+
+
+    	"""
 
     def stem_and_filter(article):
         """
@@ -27,14 +38,6 @@ class BOWSimilarity:
         tokenized.difference_update(stop_words) # Remove stop words from tokenized text
         stemmed = {ps.stem(w) for w in tokenized}
         return stemmed
-
-    def bow_similarity_score(s1, s2):
-        """
-        Returns the bag-of-words similarity score between an article s1 and article s2.
-        Specifically, measures percentage of words in s1 that are also in s2. 
-        s1, s2 must be sets representing tokenized and stemmed articles.
-        """
-        return len(s1.intersection(s2)) / len(s1)
 
     def old_and_closest_neighbor_score(curr_article, article_set, num_closest=measure_const.NUM_CLOSEST):
         """
