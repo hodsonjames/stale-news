@@ -14,6 +14,9 @@ import heapq
 import numpy as np
 import pandas as pd
 
+import glob
+fs = glob.glob('data/*.nml')
+
 #line below needs to be run at least once.
 #nltk.download('punkt')
 eastern = timezone('US/Eastern')
@@ -81,7 +84,7 @@ def similaritytest(orig, B):
     """returns a similarity score between stemmed article orig and a stemmed article (lists)"""
     return len(intersection(orig, B)) / len(orig)
 
-def stale(origStory, neighborStories):
+def stale(origStory, neighborStories, simtest):
     '''Determines the staleness of news given origStory and neighborStories. '''
     if (len(neighborStories) == 0):
         return [False, False, False, 0]
@@ -89,7 +92,7 @@ def stale(origStory, neighborStories):
     neighborWords = set()
     for storyTuple in neighborStories:
         neighborWords.update(storyTuple[1].textWords)
-    intersectionall = similaritytest(list(neighborWords), origStory.textWords)
+    intersectionall = simtest(list(neighborWords), origStory.textWords)
     intersectionmax = neighborStories[0][0] #first element of storyTuple
     #print(intersectionall, intersectionmax)
     r = [False, False, False, intersectionall]
@@ -104,7 +107,7 @@ def stale(origStory, neighborStories):
             r[2] = True
     return r
 
-def staleNewsProcedure(ticker, story, companies):
+def staleNewsProcedure(ticker, story, companies, simtest):
     companyLL = companies[ticker]
     companyLL.resetCurr()
     compStory = companyLL.nextNode()
@@ -113,13 +116,13 @@ def staleNewsProcedure(ticker, story, companies):
         if story.displayDate - compStory.displayDate > datetime.timedelta(days=3):
             companyLL.cut();
             break;
-        sim = similaritytest(story.textWords, compStory.textWords)
+        sim = simtest(story.textWords, compStory.textWords)
         heapq.heappush(maxpq, (sim, compStory)) #optimize here by limiting five? but already cut
         compStory = companyLL.nextNode()
-        
+
     largestFive = heapq.nlargest(5, maxpq)
     #print(largestFive)
-    old_reprint_recomb = stale(story, largestFive)
+    old_reprint_recomb = stale(story, largestFive, simtest)
     companies[ticker].addFront(story)
     if (largestFive != []):
         largestacc = largestFive[0][1].accessionNumber
@@ -147,14 +150,14 @@ class Story:
         self.text = article(et)
         self.textWords = stop(stem(word_tokenize(article(et))))
         self.headline = headline(et)
-        
+
     def from_other(self, number, date, tick, txt, s):
         self.acessionNumber = number
         self.displayDate = date
         self.tickers = tick
         self.text = txt
         self.sim = s
-        
+
     def __lt__ (self, other):
         if (type(other) == int):
             return self.sim < other
@@ -168,23 +171,23 @@ class myLinkedList:
     def __init__(self):
         self.head = LLNode("sentinel")
         self.end = self.head
-    
+
     def addFront(self, val):
         self.head.nextNode = LLNode(val, self.head.nextNode)
-    
+
     def resetCurr(self):
         self.curr = self.head
-    
+
     def nextNode(self):
         self.curr = self.curr.nextNode
         if (self.curr == None):
             return None
         t = self.curr.val
         return t
-    
+
     def cut(self):
         self.curr.nextNode = None
-        
+
 class LLNode():
     val = None;
     nextNode = None;
@@ -193,22 +196,38 @@ class LLNode():
         self.nextNode = nextNode
 
 #actual procedure fn
-def procedure(filename="../data/data.nml", endlocation='export_dataframe.csv', count=1000):
+def procedure(filename=fs, endlocation='export_dataframe.csv', all=False, count=1000, simtest=None, quiet=False):
+    if (all):
+        count = -1
+    if (simtest == None):
+        simtest = similaritytest
     companies = dict()
-    xtg = xmlTreeGetter(filename)
     mydata = []
-    for _ in range(count):
-        et = next(xtg)
-        story = Story(et)
-        if (story.tickers == []):
-            continue;
-        for ticker in story.tickers:
-            if ticker not in companies:
-                companies[ticker] = myLinkedList()
-            #companies[story.ticker].addFront(story)
-            p = staleNewsProcedure(ticker, story, companies)
-            mydata.append(p)
-
+    for f in filename:
+        if (not quiet):
+            print("File processing...",f)
+        xtg = xmlTreeGetter(f)
+        c = 0
+        while True:
+            if (c == count):
+                break
+            elif (not quiet and c!= 0 and c % 10000 == 0):
+                print(c)
+            try:
+                et = next(xtg)
+            except:
+                break
+            story = Story(et)
+            if (story.tickers == []):
+                continue;
+            for ticker in story.tickers:
+                if ticker not in companies:
+                    companies[ticker] = myLinkedList()
+                p = staleNewsProcedure(ticker, story, companies, simtest)
+                mydata.append(p)
+            c = c + 1
+    if (not quiet):
+        print("Procedure finished.")
     df = pd.DataFrame(mydata, columns=['DATE_EST', 'STORY_ID', 'TICKER', 'CLOSEST_ID', 'CLOSEST_SCORE', 'TOTAL_OVERLAP', 'IS_OLD', 'IS_REPRINT', 'IS_RECOMB'])
     df.to_csv(endlocation, index = None, header=True)
 
