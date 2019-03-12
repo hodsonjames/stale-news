@@ -152,7 +152,7 @@ Stories = groupCount.column("count") # all stories in data are relevant, each ro
 AbnStories = groupCount.apply(abn_stories)
 Terms = groupSum.column("unique sum")/groupCount.column("count")
 MCap = groupCount.apply(m_cap)
-BM = groupCont.apply(bm)
+BM = groupCount.apply(bm)
 # TODO: business days?
 AbnRetPW = groupCount.apply(abn_ret_pweek)
 AbnVolPW = groupCount.apply(abn_vol_pweek)
