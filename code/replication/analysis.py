@@ -8,8 +8,9 @@ from linearmodels.panel import FamaMacBeth, PanelOLS # FamaMacBeth(dependent, ex
 headers = ("id", "ticker", "date", "time", "Old", "ClosestNeighbor", "length", "closest1", "closest2")
 data = pd.read_csv("../data/simulated_data.txt", names=headers)
 
-# Quarterly Book Value: Compustat Unrestated Quarterly (TIC: Data Date, ???)
-# Daily Market Cap: ???
+# Quarterly Book Value: Compustat Unrestated Quarterly (TIC: Data Date, ATQ, Unrestated Data Values)
+# Daily Market Cap: Compustat Daily Updates - Security Daily (TIC: CSHOC, PRCCD)
+    # CRSP Daily Stock??
 
 def format_date(row):
     s = str(row["date"])
@@ -38,7 +39,7 @@ pctRecombination = (dataGroup['Recombination'].sum()/S).rename("PctRecombination
 # extent factors
 avgUnique = (dataGroup['unique'].sum()/S).rename("avg_unique")
 extentOld = (dataGroup['Old'].sum()/S).rename("ExtentOld") # 16
-extentRecombination = (dataGroup['Old'].sum() - dataGroup['ClosestNeighbor'].sum()).rename("ExtentRecombination") # 17
+extentRecombination = ((dataGroup['Old'].sum() - dataGroup['ClosestNeighbor'].sum())/S).rename("ExtentRecombination") # 17
 
 # construction
 firms = pd.concat([S, pctOld, pctRecombination, avgUnique, extentOld, extentRecombination], axis=1)
