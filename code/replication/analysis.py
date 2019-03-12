@@ -1,12 +1,15 @@
 import numpy as np
 import pandas as pd
-from linearmodels.panel import FamaMacBeth # FamaMacBeth(dependent, exogenous)
+from linearmodels.panel import FamaMacBeth, PanelOLS # FamaMacBeth(dependent, exogenous)
 
 # TODO: collect garbage (optimize memory)
 
 ####### I. Import data #######
 headers = ("id", "ticker", "date", "time", "Old", "ClosestNeighbor", "length", "closest1", "closest2")
 data = pd.read_csv("../data/simulated_data.txt", names=headers)
+
+# Quarterly Book Value: Compustat Unrestated Quarterly (TIC: Data Date, ???)
+# Daily Market Cap: ???
 
 def format_date(row):
     s = str(row["date"])
@@ -21,7 +24,7 @@ data["OldNews"] = data["Old"] > OLD_THRESHOLD
 data["share_spanned"] = data["ClosestNeighbor"] / data["Old"]
 data["Reprint"] = data.apply(lambda row: row["share_spanned"] >= REPRINT_RECOMBINATION_THRESHOLD if row["OldNews"] else False, axis=1) # 4
 data["Recombination"] = data.apply(lambda row: row["share_spanned"] < REPRINT_RECOMBINATION_THRESHOLD if row["OldNews"] else False, axis=1) # 5 
-data["unique"] = data.apply(lambda row: (1 - row["Old"])*row["length"], axis=1) # TODO: make sure this is correct
+data["unique"] = data["length"]
 
 
 ####### III. Construct firm factors #######
@@ -47,17 +50,15 @@ Construct abnormal firm factors (pg17):
     the log of the number of stories for ﬁrm i on date t, 
     the log of the average number of unique terms per story, and 
     the square of the log average number of unique terms per story
-
-This is also Fama-MacBeth, right?
 """
 firms["log(|S|)"] = np.log(firms[["|S|"]])
-firms["log(avg_unique)"] = np.log(firms[["avg_unique"]]) # ERROR: What do we do about 0 values?
-firms["log(avg_unique)^2"] = np.square(np.log(firms[["avg_unique"]]))
+firms["log(avg_unique)"] = np.log(firms[["avg_unique"]]) # TODO: across ALL firms on this date
+firms["log(avg_unique)^2"] = np.square(np.log(firms[["avg_unique"]])) # TODO: across ALL firms on this date
 
-extentOldModel = FamaMacBeth(firms[["ExtentOld"]], firms[["log(|S|)", "log(avg_unique)", "log(avg_unique)^2"]]).fit('heteroskedastic', 'bartlett')
+extentOldModel = PanelOLS(firms[["ExtentOld"]], firms[["log(|S|)", "log(avg_unique)", "log(avg_unique)^2"]]).fit('unadjusted')
 firms["abnPctOld"] = firms[["ExtentOld"]] - extentOldModel.predict(firms[["log(|S|)", "log(avg_unique)", "log(avg_unique)^2"]])
 
-extentRecombinationModel = FamaMacBeth(firms[["ExtentRecombination"]], firms[["log(|S|)", "log(avg_unique)", "log(avg_unique)^2"]]).fit('heteroskedastic', 'bartlett')
+extentRecombinationModel = PanelOLS(firms[["ExtentRecombination"]], firms[["log(|S|)", "log(avg_unique)", "log(avg_unique)^2"]]).fit('unadjusted')
 firms["abnPctRecombination"] = firms[["ExtentRecombination"]] - extentOldModel.predict(firms[["log(|S|)", "log(avg_unique)", "log(avg_unique)^2"]])
 
 
@@ -98,8 +99,8 @@ abnRetModel_Reversal = FamaMacBeth().fit('heteroskedastic', 'bartlett') # 12
 
 ####### V. Output #######
 
-print(abnRetModel_OldNews)
-print(abnVolModel_OldNews)
-print(abnRetModel_Recombination)
-print(abnVolModel_Recombination)
-print(abnRetModel_Reversal)
+print(abnRetModel_OldNews.params)
+print(abnVolModel_OldNews.params)
+print(abnRetModel_Recombination.params)
+print(abnVolModel_Recombination.params)
+print(abnRetModel_Reversal.params)
