@@ -1,6 +1,9 @@
+import math
+import datetime
 import numpy as np
 import pandas as pd
-from linearmodels.panel import FamaMacBeth, PanelOLS # FamaMacBeth(dependent, exogenous)
+from datascience import *
+from linearmodels.panel import FamaMacBeth, PanelOLS
 
 # TODO: collect garbage (optimize memory)
 
@@ -9,7 +12,7 @@ headers = ("id", "ticker", "date", "time", "Old", "ClosestNeighbor", "length", "
 data = pd.read_csv("../data/simulated_data.txt", names=headers)
 
 # Quarterly Book Value: Compustat Unrestated Quarterly (TIC: Data Date, ATQ, Unrestated Data Values)
-# Daily Market Cap: Compustat Daily Updates - Security Daily (TIC: CSHOC, PRCCD)
+# Daily Market Cap: Compustat Daily Updates - Security Daily (TIC: CSHOC, CSHTRD, PRCOD, PRCCD, PRCHD?, PRCLD?)
     # CRSP Daily Stock??
 
 def format_date(row):
