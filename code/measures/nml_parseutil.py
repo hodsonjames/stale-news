@@ -124,7 +124,7 @@ def create_article_map(directory_path, output_csv_name, k_hours=measure_const.NU
 
 # Running parser from command line
 
-# if __name__ == "__main__":
-# 	filename = sys.argv[1]
-# 	company = sys.argv[2]
-# 	print(create_article_map(filename)[company])
+if __name__ == "__main__":
+	directory_path = sys.argv[1]
+	output_csv_name = sys.argv[2]
+	create_article_map(directory_path, output_csv_name)
