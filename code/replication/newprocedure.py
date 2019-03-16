@@ -12,7 +12,7 @@ import dateutil.parser
 import datetime
 import heapq
 import numpy as np
-import pandas as pd
+import csv
 
 import glob
 fs = glob.glob('data/*.nml')
@@ -204,41 +204,42 @@ class LLNode():
         self.nextNode = nextNode
 
 #actual procedure fn
-def procedure(filename=fs, endlocation='export_dataframe.csv', all=False, count=1000, simtest=None, quiet=False):
-    print("here")
+def procedure(startlocation = 'data', endlocation='export_dataframe.csv', all=False, count=1000, simtest=None, quiet=False):
+    location = glob.glob(startlocation + '/*.nml')
     if (all):
         count = -1
     if (simtest == None):
         simtest = similaritytest
     companies = dict()
     mydata = []
-    for f in filename:
-        if (not quiet):
-            print("File processing...",f)
-        xtg = xmlTreeGetter(f)
-        c = 0
-        while True:
-            if (c == count):
-                break
-            elif (not quiet and c!= 0 and c % 100 == 0):
-                print(c)
-            try:
-                et = next(xtg)
-            except:
-                break
-            story = Story(et)
-            if (story.tickers == []):
-                continue;
-            for ticker in story.tickers:
-                if ticker not in companies:
-                    companies[ticker] = myLinkedList()
-                p = staleNewsProcedure(ticker, story, companies, simtest)
-                mydata.append(p)
-            c = c + 1
+    with open(endlocation, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',')
+        writer.writerow(['DATE_EST', 'STORY_ID', 'TICKER', 'CLOSEST_ID', 'CLOSEST_SCORE', 'TOTAL_OVERLAP', 'IS_OLD', 'IS_REPRINT', 'IS_RECOMB'])
+        for f in location:
+            if (not quiet):
+                print("File processing...",f)
+            xtg = xmlTreeGetter(f)
+            c = 0
+            while True:
+                if (c == count):
+                    break
+                elif (not quiet and c!= 0 and c % 100 == 0):
+                    print(c)
+                try:
+                    et = next(xtg)
+                except:
+                    break
+                story = Story(et)
+                if (story.tickers == []):
+                    continue;
+                for ticker in story.tickers:
+                    if ticker not in companies:
+                        companies[ticker] = myLinkedList()
+                    p = staleNewsProcedure(ticker, story, companies, simtest)
+                    writer.writerow(p)
+                c = c + 1
     if (not quiet):
         print("Procedure finished.")
-    df = pd.DataFrame(mydata, columns=['DATE_EST', 'STORY_ID', 'TICKER', 'CLOSEST_ID', 'CLOSEST_SCORE', 'TOTAL_OVERLAP', 'IS_OLD', 'IS_REPRINT', 'IS_RECOMB'])
-    df.to_csv(endlocation, index = None, header=True)
 
 if __name__ == '__main__':
     procedure()
