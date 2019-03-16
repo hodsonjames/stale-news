@@ -81,18 +81,21 @@ def intersection(lst1, lst2):
     return lst3 
 
 def similaritytest(orig, B):
-    """returns a similarity score between stemmed article orig and a stemmed article (lists)"""
-    return len(intersection(orig, B)) / len(orig)
+    """returns a similarity score between stemmed article orig and a stemmed article (text)"""
+    return len(intersection(orig.textWords, B.textWords)) / len(orig.textWords)
 
 def stale(origStory, neighborStories, simtest):
     '''Determines the staleness of news given origStory and neighborStories. '''
     if (len(neighborStories) == 0):
         return [False, False, False, 0]
     origWords = set(origStory.text)
-    neighborWords = set()
-    for storyTuple in neighborStories:
-        neighborWords.update(storyTuple[1].textWords)
-    intersectionall = simtest(list(neighborWords), origStory.textWords)
+
+    #neighborWords = ""
+    #for storyTuple in neighborStories:
+    #    neighborWords += " " + storyTuple[1].text
+    #print(neighborWords)
+    neighborWords = ''.join([storyTuple[1].text for storyTuple in neighborStories])
+    intersectionall = simtest(origStory, Story(neighbor = neighborWords))
     intersectionmax = neighborStories[0][0] #first element of storyTuple
     #print(intersectionall, intersectionmax)
     r = [False, False, False, intersectionall]
@@ -116,7 +119,7 @@ def staleNewsProcedure(ticker, story, companies, simtest):
         if story.displayDate - compStory.displayDate > datetime.timedelta(days=3):
             companyLL.cut();
             break;
-        sim = simtest(story.textWords, compStory.textWords)
+        sim = simtest(story, compStory)
         heapq.heappush(maxpq, (sim, compStory)) #optimize here by limiting five? but already cut
         compStory = companyLL.nextNode()
 
@@ -143,13 +146,17 @@ class Story:
     text = "";
     textWords = []
     sim = -1
-    def __init__(self, et):
-        self.accessionNumber = accessionNum(et)
-        self.displayDate = dateutil.parser.parse(displayDate(et)).astimezone(tz=eastern)
-        self.tickers = tickercreator(et)
-        self.text = article(et)
-        self.textWords = stop(stem(word_tokenize(article(et))))
-        self.headline = headline(et)
+    def __init__(self, et=None, neighbor=None):
+        if (neighbor != None):
+            self.text = neighbor
+            self.textWords = stop(stem(word_tokenize(neighbor)))
+        else:
+            self.accessionNumber = accessionNum(et)
+            self.displayDate = dateutil.parser.parse(displayDate(et)).astimezone(tz=eastern)
+            self.tickers = tickercreator(et)
+            self.text = article(et)
+            self.textWords = stop(stem(word_tokenize(article(et))))
+            self.headline = headline(et)
 
     def from_other(self, number, date, tick, txt, s):
         self.acessionNumber = number
@@ -157,6 +164,7 @@ class Story:
         self.tickers = tick
         self.text = txt
         self.sim = s
+
 
     def __lt__ (self, other):
         if (type(other) == int):
@@ -197,6 +205,7 @@ class LLNode():
 
 #actual procedure fn
 def procedure(filename=fs, endlocation='export_dataframe.csv', all=False, count=1000, simtest=None, quiet=False):
+    print("here")
     if (all):
         count = -1
     if (simtest == None):
@@ -211,7 +220,7 @@ def procedure(filename=fs, endlocation='export_dataframe.csv', all=False, count=
         while True:
             if (c == count):
                 break
-            elif (not quiet and c!= 0 and c % 10000 == 0):
+            elif (not quiet and c!= 0 and c % 100 == 0):
                 print(c)
             try:
                 et = next(xtg)
