@@ -2,9 +2,10 @@ import databases as d
 import utils as u
 
 compustat = d.PandasDatabase("compustatQ.csv")
-crsp = d.PandasDatabase("crspdaystock.csv")
-crspmini = d.PandasDatabase("crspdaystockmini.csv")
+crsp = d.CRSPDatabase("crspdaystock.csv")
+crspmini = d.CRSPDatabase("crspdaystockmini.csv")
 db = d.MeasuresDatabase("simulated_data.txt")
+print("SETUP DONE")
 
 """
 Test: PandasDatabase data overview
@@ -265,16 +266,17 @@ print("Expected -1 Actual: " + str(u.marketCapLN(firm3, date3, crsp)))
 
 """
 Test: totalMarketCap functionality
-mini = True
+mini = False
 if mini:
     date = "20000216"
     print("Expected: 36403372125.0 Actual: " + str(u.totalMarketCap(date, crspmini)[0]))
     date = "20181231"
     print("Expected: 1262719025820.0 Actual: " + str(u.totalMarketCap(date, crspmini)[0]))
 else:
-    # tests may take a while to run
+    # tests take longer than usual to run, as there is no benefit of cached data without many queries
     date = "20000103"
     print("Expected: 7550986428771.2 Actual: " + str(u.totalMarketCap(date, crsp)[0]))
+    print("Expected: 7550986428771.2 Saved Actual: " + str(u.totalMarketCap(date, crsp)[0]))
     date = "20181231"
     print("Expected: 14718446746677.063 Actual: " + str(u.totalMarketCap(date, crsp)[0]))
     date = "10181231"
@@ -323,14 +325,14 @@ print("Expected 0.00345778749 Actual: " + str(u.firmVolumeFrac(firm5, date5, crs
 
 """
 Test: allFirmsVolumeFrac functionality
-mini = True
+mini = False
 if mini:
     date = "20181231"
     print("Expected: 0.0058174855 Actual: " + str(u.allFirmsVolumeFrac(date, crspmini)))
     date = "20000216"
     print("Expected: 0.00345778749 Actual: " + str(u.allFirmsVolumeFrac(date, crspmini)))
 else:
-    # tests may take a while to run
+    # tests take longer than usual to run, as there is no benefit of cached data without many queries
     date = "20000103"
     print("Output: " + str(u.allFirmsVolumeFrac(date, crsp)))
     print("Saved Output: " + str(u.allFirmsVolumeFrac(date, crsp)))
@@ -343,7 +345,7 @@ else:
 
 """
 Test: abnormalVolDate functionality
-mini = True
+mini = False
 if mini:
     firm = "ORCL"
     date = "20181231"
@@ -352,7 +354,7 @@ if mini:
     date = "20000216"
     print("Expected 0.0 Actual: " + str(u.abnormalVolDate(firm, date, crspmini)))
 else:
-    # tests may take a while to run
+    # tests take longer than usual to run, as there is no benefit of cached data without many queries
     firm = "ORCL"
     date = "20000103"
     print("Expected: 0.01053044341 Actual:" + str(u.abnormalVolDate(firm, date, crsp)))
@@ -375,7 +377,7 @@ if mini:
     dateEnd = "20181231"
     print("Expected 0.00137226214 Actual: " + str(u.abnormalVol(firm, dateStart, dateEnd, crspmini)))
 else:
-    # tests will take a while to run
+    # tests will take a while to run, as there is no benefit of cached data without many queries
     firm = "ORCL"
     dateStart = "20150224"
     dateEnd = "20150226"
@@ -429,25 +431,26 @@ print("Expected: -1 Actual: " + str(u.abnormalVolatility(firm, dateStart, dateEn
 Test: illiquidityMeasureDate functionality
 firm = "ORCL"
 date = "20000103"
-print("Expected: 0.00217861607 Actual: " + str(u.illiquidityMeasureDate(firm, date, crsp)))
+print("Expected: -6.12906543405 Actual: " + str(u.illiquidityMeasureDate(firm, date, crsp)))
 firm = "TSLA"
 date = "20181231"
-print("Expected: 0.00050854143 Actual: " + str(u.illiquidityMeasureDate(firm, date, crsp)))
+print("Expected: -7.58396387087 Actual: " + str(u.illiquidityMeasureDate(firm, date, crsp)))
 firm = "FAKE"
 date = "20181231"
 print("Expected: -1 Actual: " + str(u.illiquidityMeasureDate(firm, date, crsp)))
 """
+
 
 """
 Test: illiquidity functionality
 firm = "ORCL"
 dateStart = "20000103"
 dateEnd = "20000107"
-print("Expected: -6.04533093855 Actual: " + str(u.illiquidity(firm, dateStart, dateEnd, crsp)))
+print("Expected: -6.09853739932 Actual: " + str(u.illiquidity(firm, dateStart, dateEnd, crsp)))
 firm = "TSLA"
 dateStart = "20181221"
 dateEnd = "20181228"
-print("Expected: -4.895823432117689 Actual: " + str(u.illiquidity(firm, dateStart, dateEnd, crsp)))
+print("Expected: -5.16466274207 Actual: " + str(u.illiquidity(firm, dateStart, dateEnd, crsp)))
 firm = "ORCL"
 dateStart = "20000102"
 dateEnd = "20000103"
@@ -485,13 +488,21 @@ print("Expected: 0.07772559827 Actual: " + str(u.bookToMarketCap(firm, date, crs
 
 """
 Test: generateXList functionality
+# first computation will always be slow
 firm = "AAPL"
 date = "20150721"
 print("Output: " + str(u.generateXList(firm, date, db, crsp, compustat)))
+# all subsequent computations on the same day are extremely fast
+firm = "MSFT"
+date = "20150721"
+print("Output: " + str(u.generateXList(firm, date, db, crsp, compustat)))
+# first computation on the next business day is somewhat slow
+firm = "QCOM"
+date = "20150722"
+print("Output: " + str(u.generateXList(firm, date, db, crsp, compustat)))
+# all subsequent computations on the same day are extremely fast
+firm = "BA"
+date = "20150722"
+print("Output: " + str(u.generateXList(firm, date, db, crsp, compustat)))
 """
-
-
-
-
-
 

@@ -17,29 +17,60 @@ class PandasDatabase:
         datatype is an optional dictionary mapping column name to pandas type
         1. self.tics: list of contained tickers (initially empty)
         2. self.dates: list of contained dates (initially empty)
-        3. self.auxiliaryMap: empty dictionary for flexible use (ex: an optional map with date:value_weighted_volume)
         """
         self.data = pd.read_csv(file, dtype=datatype, low_memory=False)
         # Drop incomplete rows
         self.data.dropna(inplace=True)
         self.tics = []
         self.dates = []
-        self.auxiliaryMap = {}
 
-    def recordTickers(self, colName):
+    def recordTickers(self, colName, printWarnings=True):
         """
         Creates a list of all unique tickers in the data saved in self.tics
         colName: name of ticker column
         """
         self.tics = self.data[colName].unique().tolist()
+        if printWarnings:
+            print("DATABASE TICKER SETUP DONE")
 
-    def recordDates(self, colName):
+    def recordDates(self, colName, printWarnings=True):
         """
         Creates a sorted list of all dates in the data saved in self.dates
         colName: name of date column
         """
         self.dates = self.data[colName].unique().tolist()
         self.dates.sort()
+        if printWarnings:
+            print("DATABASE DATES SETUP DONE")
+
+
+class CRSPDatabase(PandasDatabase):
+    """
+    Stores database as a pandas data frame
+    """
+
+    def __init__(self, file, datatype=None):
+        """
+        self.abnret: mapping (ticker, date) to abnormal return for firm on date
+        self.vol: mapping (ticker, date) to volume for firm on date
+        self.firmfrac: mapping (ticker, date) to fraction of shares turned over for firm on date
+        self.vwfrac: mapping date to value-weighted average fraction of shares turnover for all firms on date
+        self.abnvol: mapping (ticker, date) to firmfrac[(ticker, date)] - vwfrac[date]
+        self.mcap: mapping (ticker, date) to market cap for firm on that day
+        self.totmcap: mapping date to (sum market caps of all firms, firms available on date)
+        self.abnvolit: mapping (ticker, date) to abnormal volatility for firm on date
+        self.ill: mapping (ticker, date) to illiquidity measure for firm on date
+        """
+        super().__init__(file, datatype)
+        self.abnret = {}
+        self.vol = {}
+        self.firmfrac = {}
+        self.vwfrac = {}
+        self.abnvol = {}
+        self.mcap = {}
+        self.totmcap = {}
+        self.abnvolit = {}
+        self.ill = {}
 
 
 class TextDatabase:
@@ -93,9 +124,13 @@ class MeasuresDatabase(TextDatabase):
         Populates the measures database and creates:
         1. self.dates: Ordered Dictionary of all dates where key = date, value = None
         2. self.tics: Ordered Dictionary (NOT SORTED) of all tickers where key = ticker, value = None
-        2. self.tdMap: Dictionary mapping each (ticker, date) tuple to list of relevant news articles
-        3. self.aporeg: Empty dictionary for saving AbnPctOld regressions, maps date to regression
-        4. self.aprreg: Empty dictionary for saving AbnPctRecombination regressions, maps date to regression
+        3. self.tdMap: Dictionary mapping each (ticker, date) tuple to list of relevant news articles
+        4. self.aporeg: Empty dictionary for saving AbnPctOld regressions, maps date to regression
+        5. self.aprreg: Empty dictionary for saving AbnPctRecombination regressions, maps date to regression
+        6. self.pctold: Maps (ticker, date) to percentage old for firm on date
+        7. self.pctrec: Maps (ticker, date) to percentage recombinations for firm on date
+        8. self.stor: Maps (ticker, date) to count stories for firm on date
+        9. self.term: Maps (ticker, date) to average number of terms for firm on date
         """
         super().__init__(file)
         self.dates = OrderedDict()
@@ -103,6 +138,10 @@ class MeasuresDatabase(TextDatabase):
         self.tdMap = {}
         self.aporeg = {}
         self.aprreg = {}
+        self.pctold = {}
+        self.pctrec = {}
+        self.stor = {}
+        self.term = {}
         for row in self.database:
             if row[1] not in self.tics:
                 self.tics[row[1]] = None
