@@ -18,11 +18,15 @@ def percentageOld(firm, date, mdatabase, oldthreshold=0.6):
     If no match is found for specified firm on given date return -1 otherwise
     Returns FLOAT
     """
+    if (firm, date) in mdatabase.pctold:
+        return mdatabase.pctold[(firm, date)]
     matches = mdatabase.tdMap.get((firm, date), [])
     if len(matches) == 0:
         return -1
     oldCount = len([row for row in matches if float(row[4]) >= oldthreshold])
-    return oldCount / len(matches)
+    pold = oldCount / len(matches)
+    mdatabase.pctold[(firm, date)] = pold
+    return pold
 
 
 def percentageRecombinations(firm, date, mdatabase, oldthreshold=0.6, reprintthresh=0.8):
@@ -33,12 +37,16 @@ def percentageRecombinations(firm, date, mdatabase, oldthreshold=0.6, reprintthr
     If no match is found for specified firm on given date return -1 otherwise
     Returns FLOAT
     """
+    if (firm, date) in mdatabase.pctrec:
+        return mdatabase.pctrec[(firm, date)]
     matches = mdatabase.tdMap.get((firm, date), [])
     if len(matches) == 0:
         return -1
     recomCount = len([row for row in matches if (float(row[4]) >= oldthreshold)
                       and ((float(row[5]) / float(row[4])) < reprintthresh)])
-    return recomCount / len(matches)
+    prec = recomCount / len(matches)
+    mdatabase.pctrec[(firm, date)] = prec
+    return prec
 
 
 def abnormalPercentageOld(firm, date, mdatabase):
@@ -130,11 +138,15 @@ def abnormalReturnDate(firm, date, pdatabase, printWarnings=True):
     Returns -1 if no data available
     Returns FLOAT
     """
+    if (firm, date) in pdatabase.abnret:
+        return pdatabase.abnret[(firm, date)]
     fret = firmReturn(firm, date, pdatabase, printWarnings)
     aret = allFirmsReturn(date, pdatabase, printWarnings)
     if fret == -1 or aret == -1:
         return -1
-    return fret - aret
+    abnret = fret - aret
+    pdatabase.abnret[(firm, date)] = abnret
+    return abnret
 
 
 def abnormalReturn(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
@@ -146,7 +158,7 @@ def abnormalReturn(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
     Returns FLOAT
     """
     if not pdatabase.dates:
-        pdatabase.recordDates("date")  # "date" is a col name in crsp
+        pdatabase.recordDates("date", printWarnings)  # "date" is a col name in crsp
     if (int(dateStart) not in pdatabase.dates) or (int(dateEnd) not in pdatabase.dates) or (dateStart > dateEnd):
         if printWarnings:
             print("DATE NOT COMPATIBLE: " + dateStart + ", " + dateEnd)
@@ -204,11 +216,17 @@ def abnormalVolDate(firm, date, pdatabase, printWarnings=True):
     Returns -1 if no data available
     Returns FLOAT
     """
+    if (firm, date) in pdatabase.abnvol:
+        return pdatabase.abnvol[(firm, date)]
     fVolFrac = firmVolumeFrac(firm, date, pdatabase, printWarnings)
-    afVolFrac = allFirmsVolumeFrac(date, pdatabase, printWarnings)
-    if fVolFrac == -1 or afVolFrac == -1:
+    if fVolFrac == -1:
         return -1
-    return fVolFrac - afVolFrac
+    afVolFrac = allFirmsVolumeFrac(date, pdatabase, printWarnings)
+    if afVolFrac == -1:
+        return -1
+    abnFrac = fVolFrac - afVolFrac
+    pdatabase.abnvol[(firm, date)] = abnFrac
+    return abnFrac
 
 
 def abnormalVol(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
@@ -220,7 +238,7 @@ def abnormalVol(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
     Returns FLOAT
     """
     if not pdatabase.dates:
-        pdatabase.recordDates("date")  # "date" is a col name in crsp
+        pdatabase.recordDates("date", printWarnings)  # "date" is a col name in crsp
     if (int(dateStart) not in pdatabase.dates) or (int(dateEnd) not in pdatabase.dates) or (dateStart > dateEnd):
         if printWarnings:
             print("DATE NOT COMPATIBLE: " + dateStart + ", " + dateEnd)
@@ -244,12 +262,16 @@ def firmVolume(firm, date, pdatabase, printWarnings=True):
     Returns -1 if no data available
     Returns FLOAT
     """
+    if (firm, date) in pdatabase.vol:
+        return pdatabase.vol[(firm, date)]
     volQuery = pdatabase.data.query('(TICKER == "' + firm + '") & (date == "' + date + '")')
     if volQuery.empty:
         if printWarnings:
             print("NO VOLUME DATA: " + firm + ", " + date)
         return -1
-    return float(volQuery["VOL"].iat[0])
+    volume = float(volQuery["VOL"].iat[0])
+    pdatabase.vol[(firm, date)] = volume
+    return volume
 
 
 def firmVolumeFrac(firm, date, pdatabase, printWarnings=True, sharesUnit=1000):
@@ -260,39 +282,47 @@ def firmVolumeFrac(firm, date, pdatabase, printWarnings=True, sharesUnit=1000):
     Returns -1 if no data available
     Returns FLOAT
     """
-    volume = firmVolume(firm, date, pdatabase, printWarnings)
-    sharesQuery = pdatabase.data.query('(TICKER == "' + firm + '") & (date == "' + date + '")')
-    if sharesQuery.empty or volume == -1:
-        if sharesQuery.empty and printWarnings:
-            print("NO SHARES DATA: " + firm + ", " + date)
+    if (firm, date) in pdatabase.firmfrac:
+        return pdatabase.firmfrac[(firm, date)]
+    dateQuery = pdatabase.data.query('(TICKER == "' + firm + '") & (date == "' + date + '")')
+    if dateQuery.empty:
+        if printWarnings:
+            print("NO SHARES AND VOLUME DATA: " + firm + ", " + date)
         return -1
+    # faster to get volume directly instead of calling firmVolume
+    volume = float(dateQuery["VOL"].iat[0])
+    # save for reuse
+    pdatabase.vol[(firm, date)] = volume
     # SHROUT in thousands
-    sharesOutstanding = float(sharesQuery["SHROUT"].iat[0])
-    return volume/(sharesOutstanding * sharesUnit)
+    sharesOutstanding = float(dateQuery["SHROUT"].iat[0]) * sharesUnit
+    frac = volume/sharesOutstanding
+    pdatabase.firmfrac[(firm, date)] = frac
+    return frac
 
 
 def allFirmsVolumeFrac(date, pdatabase, printWarnings=True):
     """
     Value-weighted average of the fraction of shares turnover for all firms in our sample
     Uses decimal representation
-    Relies on naming of pdatabase (crsp), auxiliaryMap with date:value_weighted_volume
+    Relies on naming of pdatabase (crsp)
     Returns -1 if no data available
     Returns FLOAT
     """
-    if date in pdatabase.auxiliaryMap:
-        return pdatabase.auxiliaryMap[date]
+    if date in pdatabase.vwfrac:
+        return pdatabase.vwfrac[date]
     tmcapTuple = totalMarketCap(date, pdatabase, printWarnings)
     totMCap = tmcapTuple[0]
     relevantFirms = tmcapTuple[1]
     if totMCap == -1:
         return -1
-    weightedVolumeFrac = 0.0
+    weightedVolumeTot = 0.0
     for tic in relevantFirms:
-        ticMCap = marketCap(tic, date, pdatabase)
+        ticMCap = marketCap(tic, date, pdatabase)  # constant time lookup
         ticVolFrac = firmVolumeFrac(tic, date, pdatabase)
-        weightedVolumeFrac += (ticMCap / totMCap) * ticVolFrac
+        weightedVolumeTot += ticMCap*ticVolFrac
+    weightedVolumeFrac = weightedVolumeTot/totMCap
     # save the computation for repeated use
-    pdatabase.auxiliaryMap[date] = weightedVolumeFrac
+    pdatabase.vwfrac[date] = weightedVolumeFrac
     return weightedVolumeFrac
 
 
@@ -303,8 +333,11 @@ def stories(firm, date, mdatabase):
     Relies on column structure of mdatabase
     Returns INTEGER
     """
-    matches = mdatabase.tdMap.get((firm, date), [])
-    return len(matches)
+    if (firm, date) in mdatabase.stor:
+            return mdatabase.stor[(firm, date)]
+    matches = len(mdatabase.tdMap.get((firm, date), []))
+    mdatabase.stor[(firm, date)] = matches
+    return matches
 
 
 def abnormalStories(firm, date, mdatabase):
@@ -335,10 +368,14 @@ def terms(firm, date, mdatabase):
     Return -1 if no stories for firm on date
     Returns FLOAT
     """
+    if (firm, date) in mdatabase.term:
+        return mdatabase.term[(firm, date)]
     matches = mdatabase.tdMap.get((firm, date), [])
     if len(matches) == 0:
         return -1
-    return sum([float(row[6]) for row in matches]) / len(matches)
+    trms = sum([float(row[6]) for row in matches]) / len(matches)
+    mdatabase.term[(firm, date)] = trms
+    return trms
 
 
 def marketCap(firm, date, pdatabase, printWarnings=True, sharesUnit=1000):
@@ -348,21 +385,21 @@ def marketCap(firm, date, pdatabase, printWarnings=True, sharesUnit=1000):
     Returns -1 if no data available
     Returns FLOAT
     """
-    priceQuery = pdatabase.data.query('(TICKER == "' + firm + '") & (date == "' + date + '")')
-    sharesQuery = pdatabase.data.query('(TICKER == "' + firm + '") & (date == "' + date + '")')
-    if priceQuery.empty or sharesQuery.empty:
+    if (firm, date) in pdatabase.mcap:
+        return pdatabase.mcap[(firm, date)]
+    dateQuery = pdatabase.data.query('(TICKER == "' + firm + '") & (date == "' + date + '")')
+    if dateQuery.empty:
         if printWarnings:
-            if priceQuery.empty:
-                print("NO PRICE DATA: " + firm + ", " + date)
-            if sharesQuery.empty:
-                print("NO SHARES DATA: " + firm + ", " + date)
+            print("NO PRICE AND SHARES DATA: " + firm + ", " + date)
         return -1
-    price = float(priceQuery["OPENPRC"].iat[0])
+    price = float(dateQuery["OPENPRC"].iat[0])
     # SHROUT in thousands
-    sharesOutstanding = float(sharesQuery["SHROUT"].iat[0])
+    sharesOutstanding = float(dateQuery["SHROUT"].iat[0]) * sharesUnit
     # print(price)
     # print(sharesOutstanding)
-    return price * sharesOutstanding * sharesUnit
+    mc = price * sharesOutstanding
+    pdatabase.mcap[(firm, date)] = mc
+    return mc
 
 
 def marketCapLN(firm, date, pdatabase, printWarnings=True):
@@ -385,23 +422,19 @@ def totalMarketCap(date, pdatabase, printWarnings=True):
     Returns (-1, []) if no data available
     Returns (FLOAT, includedTickers)
     """
+    if date in pdatabase.totmcap:
+        return pdatabase.totmcap[date]
     totalMarketCaps = 0.0
-    includedTickers = []
-    missingTickers = []
-    if not pdatabase.tics:
-        pdatabase.recordTickers("TICKER")  # "TICKER" is a col name in crsp
-    for tic in pdatabase.tics:
-        ticMCap = marketCap(tic, date, pdatabase, False)
-        if ticMCap == -1:
-            missingTickers.append(tic)
-        else:
-            includedTickers.append(tic)
-            totalMarketCaps += ticMCap
-    if printWarnings:
-        print("TICKERS MISSING IN TOTAL: " + str(missingTickers))
-        if not includedTickers:
-            return -1, []
-    return totalMarketCaps, includedTickers
+    ticsQuery = pdatabase.data.query('date == "' + date + '"')
+    if ticsQuery.empty:
+        if printWarnings:
+            print("NO MARKET DATA: " + date)
+        return -1, []
+    tics = ticsQuery["TICKER"].unique().tolist()
+    for tic in tics:
+        totalMarketCaps += marketCap(tic, date, pdatabase, False)
+    pdatabase.totmcap[date] = (totalMarketCaps, tics)
+    return totalMarketCaps, tics
 
 
 def bookToMarketCap(firm, date, pdatabase1, pdatabase2, printWarnings=True):
@@ -445,8 +478,10 @@ def abnormalVolatilityDate(firm, date, pdatabase, printWarnings=True):
     Return -1 if dates not compatible or if no data available
     Returns FLOAT
     """
+    if (firm, date) in pdatabase.abnvolit:
+        return pdatabase.abnvolit[(firm, date)]
     if not pdatabase.dates:
-        pdatabase.recordDates("date")  # "date" is a col name in crsp
+        pdatabase.recordDates("date", printWarnings)  # "date" is a col name in crsp
     if (int(date) not in pdatabase.dates) or (pdatabase.dates.index(int(date)) - 19) < 0:
         if printWarnings:
             print("DATE NOT COMPATIBLE: " + date)
@@ -460,7 +495,9 @@ def abnormalVolatilityDate(firm, date, pdatabase, printWarnings=True):
             return -1
         abnRets.append(abnRet)
     # print(abnRets)
-    return np.std(abnRets)
+    volit = np.std(abnRets)
+    pdatabase.abnvolit[(firm, date)] = volit
+    return volit
 
 
 def abnormalVolatility(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
@@ -471,7 +508,7 @@ def abnormalVolatility(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
     Returns FLOAT
     """
     if not pdatabase.dates:
-        pdatabase.recordDates("date")  # "date" is a col name in crsp
+        pdatabase.recordDates("date", printWarnings)  # "date" is a col name in crsp
     if (int(dateStart) not in pdatabase.dates) or (int(dateEnd) not in pdatabase.dates) or (dateStart > dateEnd):
         if printWarnings:
             print("DATE NOT COMPATIBLE: " + dateStart + ", " + dateEnd)
@@ -489,28 +526,31 @@ def abnormalVolatility(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
 
 def illiquidityMeasureDate(firm, date, pdatabase, printWarnings=True):
     """
-    10**6 * |Ret(firm,date)| / Volume(firm,date)
+    ln(10**6 * |Ret(firm,date)| / Volume(firm,date))
     Relies on naming of pdatabase (crsp)
     Return -1 if no data available
     Returns FLOAT
     """
-    ret = firmReturn(firm, date, pdatabase, printWarnings)
-    vol = firmVolume(firm, date, pdatabase, printWarnings)
+    if (firm, date) in pdatabase.ill:
+        return pdatabase.ill[(firm, date)]
+    ret = firmReturn(firm, date, pdatabase, printWarnings)  # constant time lookup when used in generateXList
+    vol = firmVolume(firm, date, pdatabase, printWarnings)  # constant time lookup when used in generateXList
     if ret == -1 or vol == -1:
         return -1
-    return 10**6 * abs(ret) / vol
+    measure = np.log(10**6 * abs(ret) / vol)
+    pdatabase.ill[(firm, date)] = measure
+    return measure
 
 
 def illiquidity(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
     """
-    LN of the illiquidity measure from Amihud, computed as the average over [dateStart, dateEnd] of
-    10**6 * |Ret(firm,date)| / Volume(firm,date)
+    Average of illiquidity measure from Amihud over [dateStart, dateEnd]
     Relies on naming of pdatabase (crsp)
     Return -1 if dates not compatible or if no data available
     Returns FLOAT
     """
     if not pdatabase.dates:
-        pdatabase.recordDates("date")  # "date" is a col name in crsp
+        pdatabase.recordDates("date", printWarnings)  # "date" is a col name in crsp
     if (int(dateStart) not in pdatabase.dates) or (int(dateEnd) not in pdatabase.dates) or (dateStart > dateEnd):
         if printWarnings:
             print("DATE NOT COMPATIBLE: " + dateStart + ", " + dateEnd)
@@ -523,7 +563,7 @@ def illiquidity(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
         if illMea == -1:
             return -1
         illMeaSum += illMea
-    return np.log(illMeaSum / (dateEndInd - dateStartInd + 1))
+    return illMeaSum / (dateEndInd - dateStartInd + 1)
 
 
 def generateXList(firm, date, mdatabase, pdatabase1, pdatabase2, printWarnings=True):
@@ -581,7 +621,7 @@ def generateXList(firm, date, mdatabase, pdatabase1, pdatabase2, printWarnings=T
     if printWarnings:
         print("Entry 5 Computing...")
     if not pdatabase1.dates:
-        pdatabase1.recordDates("date")  # "date" is a col name in crsp
+        pdatabase1.recordDates("date", printWarnings)  # "date" is a col name in crsp
     if (int(date) not in pdatabase1.dates) or (pdatabase1.dates.index(int(date)) - 5) < 0:
         if printWarnings:
             print("DATE NOT COMPATIBLE: " + date)
