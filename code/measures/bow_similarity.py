@@ -36,7 +36,7 @@ class BOWSimilarity:
         """
         return len(s1.intersection(s2)) / len(s1)
 
-    def old_and_closest_neighbor_score(curr_article, article_set, num_closest=measure_const.NUM_CLOSEST):
+    def compute_sim_measure(curr_article, article_set, num_closest=measure_const.NUM_CLOSEST):
         """
         Calculates Old(s) and ClosestNeighbor(s), where s is curr_article. 
         
