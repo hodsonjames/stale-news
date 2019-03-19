@@ -1,6 +1,10 @@
+# tester.py
+# -------
+# Unit and integration tests for databases.py, utils.py
 import databases as d
 import utils as u
 
+# setup databases to read in from
 compustat = d.PandasDatabase("compustatQ.csv")
 crsp = d.CRSPDatabase("crspdaystock.csv")
 crspmini = d.CRSPDatabase("crspdaystockmini.csv")
@@ -19,7 +23,6 @@ print(crsp.data.dtypes)
 print(crsp.data.tail(5))
 """
 
-
 """
 Test: PandasDatabase data basic queries
 print("COMPUSTAT: ")
@@ -27,7 +30,6 @@ print(compustat.data['ceqq'])
 print("CRSP: ")
 print(crsp.data['RETX'])
 """
-
 
 """
 Test: PandasDatabase tics functionality
@@ -37,7 +39,6 @@ compustat.recordTickers("tic")
 print(compustat.tics)
 """
 
-
 """
 Test: PandasDatabase dates functionality
 crsp.recordDates("date")
@@ -45,7 +46,6 @@ print(crsp.dates)
 compustat.recordDates("datadate")
 print(compustat.dates)
 """
-
 
 """
 Test: MeasuresDatabase tdMap functionality
@@ -57,7 +57,6 @@ for k in db.tdMap:
         count += 1
 print(count)
 """
-
 
 """
 Test: MeasuresDatabase dates functionality
@@ -107,7 +106,6 @@ print("Expected: -1 Actual: " + str(u.percentageOld("PRGO", "2015042", db)))
 print("Expected: -1 Actual: " + str(u.percentageOld("FAKE", "20150421", db)))
 """
 
-
 """
 Test: stories functionality
 print("Expected: 2 Actual: " + str(u.stories("PRGO", "20150421", db)))
@@ -115,7 +113,6 @@ print("Expected: 2 Actual: " + str(u.stories("TWTR", "20150611", db)))
 print("Expected: 0 Actual: " + str(u.stories("DOES NOT EXIST", "20150611", db)))
 print("Expected: 0 Actual: " + str(u.stories("TWTR", "302123231", db)))
 """
-
 
 """
 Test: terms functionality
@@ -125,7 +122,6 @@ print("Expected: -1 Actual: " + str(u.terms("DOES NOT EXIST", "20150611", db)))
 print("Expected: -1 Actual: " + str(u.terms("TWTR", "302123231", db)))
 """
 
-
 """
 Test: abnormalStories functionality
 print("Expected: -1 Actual: " + str(u.abnormalStories("PRGO", "20150421", db)))
@@ -133,7 +129,6 @@ print("Expected: 0.32727272727272727 Actual: " + str(u.abnormalStories("FCAU", "
 print("Expected: -0.07272727272727272 Actual: " + str(u.abnormalStories("AAPL", "20150721", db)))
 """
 
-
 """
 Test: abnormalPercentageOld functionality
 tickers = list(db.tics.keys())
@@ -142,7 +137,6 @@ for t in tickers:
         print(t + " AbnPctOld: " + str(u.abnormalPercentageOld(t, "20150421", db)) + "  PctOld: " + str(u.percentageOld(t, "20150421", db)))
 """
 
-
 """
 Test: abnormalPercentageOld functionality
 tickers = list(db.tics.keys())
@@ -150,7 +144,6 @@ for t in tickers:
     if (t, "20150421") in db.tdMap:
         print(t + " AbnPctOld: " + str(u.abnormalPercentageOld(t, "20150421", db)) + "  PctOld: " + str(u.percentageOld(t, "20150421", db)))
 """
-
 
 """
 Test: abnormalPercentageRecombinations functionality
@@ -159,7 +152,6 @@ for t in tickers:
     if (t, "20150423") in db.tdMap:
         print(t + " AbnPctRecombinations: " + str(u.abnormalPercentageRecombinations(t, "20150423", db)) + "  PctRecombinations: " + str(u.percentageRecombinations(t, "20150423", db)))
 """
-
 
 """
 Test: firmReturn functionality
@@ -184,7 +176,6 @@ date4 = "20000103"
 print("Expected -1 Actual: " + str(u.firmReturn(firm4, date4, crsp)))
 """
 
-
 """
 Test: allFirmsReturn functionality
 verbose = False
@@ -204,7 +195,6 @@ date4 = "19991220"
 print("Expected: -1 Actual: " + str(u.allFirmsReturn(date4, crsp)))
 """
 
-
 """
 Test: abnormalReturnDate functionality
 firm = "ORCL"
@@ -217,7 +207,6 @@ firm = "TSLA"
 date = "19991231"
 print("Expected: -1 Actual: " + str(u.abnormalReturnDate(firm, date, crsp)))
 """
-
 
 """
 Test: abnormalReturn functionality
@@ -235,7 +224,6 @@ dateEnd = "20150731"
 print("Expected: -1 Actual: " + str(u.abnormalReturn(firm, dateStart, dateEnd, crsp)))
 """
 
-
 """
 Test: marketCap functionality
 firm = "ORCL"
@@ -249,7 +237,6 @@ date3 = "20000103"
 print("Expected -1 Actual: " + str(u.marketCap(firm3, date3, crsp)))
 """
 
-
 """
 Test: marketCapLN functionality
 firm = "ORCL"
@@ -262,7 +249,6 @@ firm3 = "TSLA"
 date3 = "20000103"
 print("Expected -1 Actual: " + str(u.marketCapLN(firm3, date3, crsp)))
 """
-
 
 """
 Test: totalMarketCap functionality
@@ -283,7 +269,6 @@ else:
     print("Expected: -1 Actual: " + str(u.totalMarketCap(date, crsp)[0]))
 """
 
-
 """
 Test: firmVolume functionality
 verbose = False
@@ -301,7 +286,6 @@ firm3 = "TSLA"
 date3 = "20000103"
 print("Expected -1 Actual: " + str(u.firmVolume(firm3, date3, crsp)))
 """
-
 
 """
 Test: firmVolumeFrac functionality
@@ -322,7 +306,6 @@ date5 = "20000216"
 print("Expected 0.00345778749 Actual: " + str(u.firmVolumeFrac(firm5, date5, crspmini)))
 """
 
-
 """
 Test: allFirmsVolumeFrac functionality
 mini = False
@@ -341,7 +324,6 @@ else:
     date = "10181231"
     print("Expected: -1 Actual: " + str(u.allFirmsVolumeFrac(date, crsp)))
 """
-
 
 """
 Test: abnormalVolDate functionality
@@ -362,7 +344,6 @@ else:
     date = "10181231"
     print("Expected: -1 Actual:" + str(u.abnormalVolDate(firm, date, crsp)))
 """
-
 
 """
 Test: abnormalVol functionality
@@ -388,7 +369,6 @@ else:
     print("Expected: -1 Actual: " + str(u.abnormalVol(firm, dateStart, dateEnd, crsp)))
 """
 
-
 """
 Test: abnormalVolatilityDate functionality
 firm = "ORCL"
@@ -404,7 +384,6 @@ firm = "ORCL"
 date = "20000201"
 print("Output: " + str(u.abnormalVolatilityDate(firm, date, crsp)))
 """
-
 
 """
 Test: abnormalVolatility functionality
@@ -426,7 +405,6 @@ dateEnd = "20181231"
 print("Expected: -1 Actual: " + str(u.abnormalVolatility(firm, dateStart, dateEnd, crsp)))
 """
 
-
 """
 Test: illiquidityMeasureDate functionality
 firm = "ORCL"
@@ -439,7 +417,6 @@ firm = "FAKE"
 date = "20181231"
 print("Expected: -1 Actual: " + str(u.illiquidityMeasureDate(firm, date, crsp)))
 """
-
 
 """
 Test: illiquidity functionality
@@ -457,7 +434,6 @@ dateEnd = "20000103"
 print("Expected: -1 Actual: " + str(u.illiquidity(firm, dateStart, dateEnd, crsp)))
 """
 
-
 """
 Test: bookValue functionality
 firm = "ORCL"
@@ -471,7 +447,6 @@ date = "20181231"
 print("Expected: -1 Actual: " + str(u.bookValue(firm, date, compustat)))
 """
 
-
 """
 Test: bookToMarketCap functionality
 firm = "ORCL"
@@ -484,7 +459,6 @@ firm = "TSLA"
 date = "20181231"
 print("Expected: 0.07772559827 Actual: " + str(u.bookToMarketCap(firm, date, crsp, compustat)))
 """
-
 
 """
 Test: generateXList functionality
@@ -505,4 +479,5 @@ firm = "BA"
 date = "20150722"
 print("Output: " + str(u.generateXList(firm, date, db, crsp, compustat)))
 """
+
 

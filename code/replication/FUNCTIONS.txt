@@ -1,44 +1,63 @@
 
-Functions and their related methods.
+Functions hierarchy:
 
-Indented functions MAY be used by functions housing them (to their immediate left in indentation).
+"""
+utils.py
+"""
+abnormalPercentageOld()
+    > percentageOld()
+    > stories()
+    > terms()
 
-#N indicates function overloading.
+abnormalPercentageRecombinations()
+    > percentageRecombinations()
+    > stories()
+    > terms()
 
-famaMacBethRegression()
-	> abnormalReturnDate()
-		>> firmReturn()
-		>> allFirmsReturn()
-	> abnormalReturn()
-			>>> abnormalReturnDate()
-				>>>> firmReturn()
-				>>>> allFirmsReturn()
-	> abnormalVolDate()
-		>> firmVolume()
-		>> allFirmsVolume()
-	> abnormalPercentageOld()
-	    >> percentageOld()
-	> abnormalPercentageRecombinations()
-	    >> percentageRecombinations()
-	> generateXVector()
-		>> stories()
-		>> abnormalStories()
-			>>> stories()
-		>> terms()
-		>> marketCap()
-		>> bookToMarketCap()
-			>>> marketCap()
-		>> abnormalReturn()
-			>>> abnormalReturnDate()
-				>>>> firmReturn()
-				>>>> allFirmsReturn()
-		>> abnormalVol()
-			>>> abnormalVolDate()
-				>>>> firmVolume()
-				>>>> allFirmsVolume()
-		>> abnormalVolatility()
-		>> illiquidity()
+abnormalReturnDate()
+    > firmReturn()
+    > allFirmsReturn()
 
------
+abnormalReturn()
+    > abnormalReturnDate()
 
-neweyWestStdErrors()
+abnormalVolDate()
+    > firmVolumeFrac()
+    > allFirmsVolumeFrac()
+        > firmVolumeFrac()
+        > totalMarketCap()
+        > marketCap()
+
+abnormalVol()
+    > abnormalVolDate()
+
+abnormalStories()
+    > stories()
+
+marketCapLN()
+    > marketCap()
+
+bookToMarketCap()
+    > bookValue()
+    > marketCap()
+
+abnormalVolatility()
+    > abnormalVolatilityDate()
+        > abnormalReturnDate()
+
+illiquidity()
+    > illiquidityMeasureDate()
+        > firmReturn()
+        > firmVolume()
+
+generateXList()
+    > stories()
+    > abnormalStories()
+    > terms()
+    > marketCapLN()
+    > bookToMarketCap()
+    > abnormalReturn()
+    > abnormalVol()
+    > abnormalVolatility()
+    > illiquidity()
+
