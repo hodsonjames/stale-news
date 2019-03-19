@@ -33,16 +33,6 @@ class CosineSimilarity:
         stemmed = " ".join([ps.stem(w) for w in tokenized])
         return stemmed
 
-    def cosine_similarity_score(s1, s2):
-    	"""
-    	Takes in 2 documents represented as tf-idf vectors, and computes the cosine similarity
-    	between the two vectors.
-    	"""
-    	dot_product = np.dot(s1, s2)
-    	s1_norm = np.linalg.norm(s1)
-    	s2_norm = np.linalg.norm(s2)
-    	return dot_product / (s1_norm * s2_norm)
-
     def compute_sim_measure(curr_article, article_set, num_closest=measure_const.NUM_CLOSEST):
         """
         Calculates Old(s) and ClosestNeighbor(s), where s is curr_article. 
