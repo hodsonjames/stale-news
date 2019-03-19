@@ -123,7 +123,7 @@ class MeasuresDatabase(TextDatabase):
         """
         Populates the measures database and creates:
         1. self.dates: Ordered Dictionary of all dates where key = date, value = None
-        2. self.tics: Ordered Dictionary (NOT SORTED) of all tickers where key = ticker, value = None
+        2. self.tics: Dictionary of all tickers where key = ticker, value = None
         3. self.tdMap: Dictionary mapping each (ticker, date) tuple to list of relevant news articles
         4. self.aporeg: Empty dictionary for saving AbnPctOld regressions, maps date to regression
         5. self.aprreg: Empty dictionary for saving AbnPctRecombination regressions, maps date to regression

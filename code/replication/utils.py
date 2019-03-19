@@ -1,10 +1,6 @@
 # utils.py
 # -------
 # Helper functions for arguments to regression.py
-
-"""
-Functions that interface with measures directory in repo
-"""
 import pandas as pd
 import statsmodels.formula.api as sm
 import numpy as np
