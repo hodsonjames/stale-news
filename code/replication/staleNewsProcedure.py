@@ -1,5 +1,11 @@
 """This file should implement the procedures detailed in the stale news paper.
-   Made by Christopher Gong"""
+   Made by Christopher Gong
+
+   Summary:
+The methods below apply the stale news procedure outline in the paper "How does..." by Anasteesia Fedyk and James Hodson. The procedure goes through each article in chronological order from multiple sorted nml files, checking its similarity with articles about the same company that have been previously seen by the procedure and are within the last 72 hours. If an article is about multiple companies, the article will be processed once per company. A provided similarity test is used, and key similarity information (DATE_EST, STORY_ID, TICKER, CLOSEST_ID, CLOSEST_SCORE, TOTAL_OVERLAP, IS_OLD, IS_REPRINT, IS_RECOMB) is written to a csv file. 
+
+Optimizations:
+Understanding the mere size of the number of articles published in a day, and the decade long amount of data to be processed in this way, key optimizations can be made to drastically reduce the time needed to for the procedure. First, articles are processed one at a time in a getter structure for less memory useage. Theoretically, the procedure can handle an infinite sequence of articles. Second, after an article has been processed, only important informaton is kept, in a story class. Lastly, the stories related to a company are stored in a linked list in reverse chronological order. When processing a new article, only the previous 72 hours of articles are considered, and any older articles will be removed by way of cut (or prune) of the linked list, to never have more than 72 hours of articles for a comapny to be stored. This optimization can be made because the articles are considered in chronological order. """
 
 import xml.etree.ElementTree as ET
 import re
@@ -25,6 +31,8 @@ stemmer = PorterStemmer()
 
 #Key functions
 def xmlTreeGetter(filename="2001_sample_10M.nml"):
+    '''A getter function for each article. When next is called, it will return the next article. 
+    The files are split by the </doc> tag, which is at the end of every article.'''
     nmlFile = open(filename)
     text = ""
     for i, line in enumerate(nmlFile):
@@ -35,6 +43,7 @@ def xmlTreeGetter(filename="2001_sample_10M.nml"):
 
 #getters for article with a given etree
 def article(etree):
+    '''Given etree, return article'''
     art = etree.find("djnml").find("body").find("text")
     if art is None:
         return ""
@@ -44,9 +53,11 @@ def article(etree):
     return article
 
 def headline(etree):
+    '''Given etree, return headline'''
     return etree.find("djnml").find("body").find("headline").text
 
 def tickercreator(etree):
+    '''Given etree, return ticker list'''
     tik = etree.find("djnml").find("head").find("docdata").find("djn").find("djn-newswires").find("djn-mdata").find("djn-coding").find("djn-company")
     tickers = []
     if tik is None:
@@ -56,9 +67,11 @@ def tickercreator(etree):
     return tickers
 
 def accessionNum(etree):
+    '''Given etree, return acession number'''
     return etree.find("djnml").find("head").find("docdata").find("djn").find("djn-newswires").find("djn-mdata").attrib['accession-number']
 
 def displayDate(etree):
+    '''Given etree, reutrn display date'''
     return etree.find("djnml").find("head").find("docdata").find("djn").find("djn-newswires").find("djn-mdata").attrib['display-date']
 
 def stem(tokenizedWords):
@@ -111,6 +124,8 @@ def stale(origStory, neighborStories, simtest):
     return r
 
 def staleNewsProcedure(ticker, story, companies, simtest):
+    '''Performs the stalen news procedure for one article. Returns the similarity information for this
+    article compared to the articles up to 72 hours prior. '''
     companyLL = companies[ticker]
     companyLL.resetCurr()
     compStory = companyLL.nextNode()
@@ -138,7 +153,7 @@ def staleNewsProcedure(ticker, story, companies, simtest):
 #Key classes
 
 class Story:
-    '''A story class.'''
+    '''A story class. Contains all of the information useful from each story.'''
     accessionNumber = 0
     displayDate = 0
     tickers = []
@@ -172,7 +187,9 @@ class Story:
         return self.sim < other.sim
 
 class myLinkedList:
-    '''A linked list.'''
+    '''A linked list. One key property of this LL is that the next node can be called with nextNode.
+    If cut is called, the LL will be pruned (or cut) at the location of nextNode, so that unnecessary 
+    information can be easily removed.'''
     head = None
     end = None
     curr = None
@@ -205,7 +222,9 @@ class LLNode():
 
 #actual procedure fn
 def procedure(startlocation = 'data', endlocation='export_dataframe.csv', all=False, count=1000, simtest=None, quiet=False):
-    location = glob.glob(startlocation + '/*.nml')
+    '''Performs the procedure for the specified amount of articles. Uses all nml files from startlocation, and exports a csv file
+    at endlocation.'''
+    location = sort(glob.glob(startlocation + '/*.nml'))
     if (all):
         count = -1
     if (simtest == None):
