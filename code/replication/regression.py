@@ -18,71 +18,62 @@ def famaMacBethRegression8(dates, firms, mdatabase, pdatabase1, pdatabase2):
     Returns dictionary mapping coefficients to values
     """
     # running sum of coefficients as cross-sectional regressions are computed
-    a = 0
-    b = 0
-    g1 = 0
-    g2 = 0
-    g3 = 0
-    g4 = 0
-    g5 = 0
-    g6 = 0
-    g7 = 0
-    g8 = 0
-    g9 = 0
-    for date in dates:
+    coefficients = {'a': 0, 'b': 0, 'g1': 0, 'g2': 0, 'g3': 0, 'g4': 0, 'g5': 0, 'g6': 0, 'g7': 0, 'g8': 0, 'g9': 0}
+    # for average at end
+    num_dates_used = len(dates) - 1
+    unused_dates = []
+    for i in range(len(dates) - 1):
+        print("DAY T: " + dates[i])
         # compute daily cross-sectional regression
-        absAbnRet = []
-        AbnPctOld = []
-        Stories = []
-        AbnStories = []
-        Terms = []
-        MCap = []
-        BM = []
-        AbnRet = []
-        AbnVol = []
-        AbnVolitility = []
-        Illiq = []
+        lists = {'absAbnRet': [], 'AbnPctOld': [], 'Stories': [], 'AbnStories': [], 'Terms': [], 'MCap': [],
+                 'BM': [], 'AbnRet': [], 'AbnVol': [], 'AbnVolitility': [], 'Illiq': []}
         for firm in firms:
-            absAbnRet.append(abs(u.abnormalReturnDate(firm, date, pdatabase1, False)))
-            AbnPctOld.append(u.abnormalPercentageOld(firm, date, mdatabase))
-            X = u.generateXList(firm, date, mdatabase, pdatabase1, pdatabase2, False)
-            Stories.append(X[0])
-            AbnStories.append(X[1])
-            Terms.append(X[2])
-            MCap.append(X[3])
-            BM.append(X[4])
-            AbnRet.append(X[5])
-            AbnVol.append(X[6])
-            AbnVolitility.append(X[7])
-            Illiq.append(X[8])
+            # skip firms where no data is available on date
+            abn_ret = u.abnormalReturnDate(firm, dates[i + 1], pdatabase1, False)
+            if abn_ret == -1:
+                continue
+            abn_pct_old = u.abnormalPercentageOld(firm, dates[i], mdatabase)
+            if abn_pct_old == -1:
+                continue
+            x = u.generateXList(firm, dates[i], mdatabase, pdatabase1, pdatabase2, False)
+            if not x:
+                continue
+            lists['absAbnRet'].append(abs(abn_ret))
+            lists['AbnPctOld'].append(abn_pct_old)
+            lists['Stories'].append(x[0])
+            lists['AbnStories'].append(x[1])
+            lists['Terms'].append(x[2])
+            lists['MCap'].append(x[3])
+            lists['BM'].append(x[4])
+            lists['AbnRet'].append(x[5])
+            lists['AbnVol'].append(x[6])
+            lists['AbnVolitility'].append(x[7])
+            lists['Illiq'].append(x[8])
+        # Invalid date
+        if len(lists['absAbnRet']) == 0:
+            num_dates_used -= 1
+            unused_dates.append(dates[i])
+            continue
         # Create pandas data frame and run regression with statsmodels
-        df = pd.DataFrame({"Y": absAbnRet, "B": AbnPctOld, "G1": Stories, "G2": AbnStories, "G3": Terms,
-                           "G4": MCap, "G5": BM, "G6": AbnRet, "G7": AbnVol, "G8": AbnVolitility, "G9": Illiq})
+        df = pd.DataFrame({"Y": lists['absAbnRet'], "B": lists['AbnPctOld'], "G1": lists['Stories'],
+                           "G2": lists['AbnStories'], "G3": lists['Terms'], "G4": lists['MCap'],
+                           "G5": lists['BM'], "G6": lists['AbnRet'], "G7": lists['AbnVol'],
+                           "G8": lists['AbnVolitility'], "G9": lists['Illiq']})
         result = sm.ols(formula="Y ~ B + G1 + G2 + G3 + G4 + G5 + G6 + G7 + G8 + G9", data=df).fit()
-        a += result.params.Intercept
-        b += result.params.B
-        g1 += result.params.G1
-        g2 += result.params.G2
-        g3 += result.params.G3
-        g4 += result.params.G4
-        g5 += result.params.G5
-        g6 += result.params.G6
-        g7 += result.params.G7
-        g8 += result.params.G8
-        g9 += result.params.G9
-    num_regressions = len(dates)
-    return {'a': a/num_regressions, 'b': b/num_regressions, 'g1': g1/num_regressions, 'g2': g2/num_regressions,
-            'g3': g3/num_regressions, 'g4': g4/num_regressions, 'g5': g5/num_regressions, 'g6': g1/num_regressions,
-            'g7': g7/num_regressions, 'g8': g8/num_regressions, 'g9': g9/num_regressions}
-
-
-def generateFMDataFrame(XLists, AbnPctOldList, DependentList):
-    """
-    Returns pandas data frame organized for ols
-    XLists: list of XList corresponding to available firms on given day
-    AbnPctOldList: list of AbnPctOld corresponding to available firms on given day
-    DependentList: list of dependent variable corresponding to available firms on given day
-    """
+        coefficients['a'] += result.params.Intercept
+        coefficients['b'] += result.params.B
+        coefficients['g1'] += result.params.G1
+        coefficients['g2'] += result.params.G2
+        coefficients['g3'] += result.params.G3
+        coefficients['g4'] += result.params.G4
+        coefficients['g5'] += result.params.G5
+        coefficients['g6'] += result.params.G6
+        coefficients['g7'] += result.params.G7
+        coefficients['g8'] += result.params.G8
+        coefficients['g9'] += result.params.G9
+    print(unused_dates)
+    print(num_dates_used)
+    return {key: coefficients[key]/num_dates_used for key in coefficients}
 
 
 def neweyWestStdErrors():
