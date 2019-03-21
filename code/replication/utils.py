@@ -179,7 +179,8 @@ def firmReturn(firm, date, pdatabase, printWarnings=True):
     Returns FLOAT
     """
     retQuery = pdatabase.data.query('(TICKER == "' + firm + '") & (date == "' + date + '")')
-    if retQuery.empty:
+    if retQuery.empty or retQuery["RETX"].iat[0] == "C":
+        # crsp placeholder value can be "C"
         if printWarnings:
             print("NO RETURN DATA: " + firm + ", " + date)
         return -1
@@ -474,8 +475,8 @@ def abnormalVolatilityDate(firm, date, pdatabase, printWarnings=True):
     Return -1 if dates not compatible or if no data available
     Returns FLOAT
     """
-    if (firm, date) in pdatabase.abnvolit:
-        return pdatabase.abnvolit[(firm, date)]
+    if (firm, date) in pdatabase.abnvolat:
+        return pdatabase.abnvolat[(firm, date)]
     if not pdatabase.dates:
         pdatabase.recordDates("date", printWarnings)  # "date" is a col name in crsp
     if (int(date) not in pdatabase.dates) or (pdatabase.dates.index(int(date)) - 19) < 0:
@@ -491,14 +492,14 @@ def abnormalVolatilityDate(firm, date, pdatabase, printWarnings=True):
             return -1
         abnRets.append(abnRet)
     # print(abnRets)
-    volit = np.std(abnRets)
-    pdatabase.abnvolit[(firm, date)] = volit
-    return volit
+    volat = np.std(abnRets)
+    pdatabase.abnvolat[(firm, date)] = volat
+    return volat
 
 
 def abnormalVolatility(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
     """
-    Average of AbnVolitility for days in [dateStart, dateEnd]
+    Average of AbnVolatility for days in [dateStart, dateEnd]
     Relies on naming of pdatabase (crsp)
     Return -1 if dates not compatible or if no data available
     Returns FLOAT
@@ -511,13 +512,13 @@ def abnormalVolatility(firm, dateStart, dateEnd, pdatabase, printWarnings=True):
         return -1
     dateStartInd = pdatabase.dates.index(int(dateStart))
     dateEndInd = pdatabase.dates.index(int(dateEnd))
-    sumAbVolit = 0.0
+    sumAbVolat = 0.0
     for i in range(dateEndInd - dateStartInd + 1):
-        avolitdate = abnormalVolatilityDate(firm, str(pdatabase.dates[dateStartInd + i]), pdatabase, printWarnings)
-        if avolitdate == -1:
+        avolatdate = abnormalVolatilityDate(firm, str(pdatabase.dates[dateStartInd + i]), pdatabase, printWarnings)
+        if avolatdate == -1:
             return -1
-        sumAbVolit += avolitdate
-    return sumAbVolit / (dateEndInd - dateStartInd + 1)
+        sumAbVolat += avolatdate
+    return sumAbVolat / (dateEndInd - dateStartInd + 1)
 
 
 def illiquidityMeasureDate(firm, date, pdatabase, printWarnings=True):
@@ -531,7 +532,8 @@ def illiquidityMeasureDate(firm, date, pdatabase, printWarnings=True):
         return pdatabase.ill[(firm, date)]
     ret = firmReturn(firm, date, pdatabase, printWarnings)  # constant time lookup when used in generateXList
     vol = firmVolume(firm, date, pdatabase, printWarnings)  # constant time lookup when used in generateXList
-    if ret == -1 or vol == -1:
+    if ret == -1 or vol == -1 or ret == 0 or vol == 0:
+        # log does not take 0 or allow division by 0
         return -1
     measure = np.log(10**6 * abs(ret) / vol)
     pdatabase.ill[(firm, date)] = measure
@@ -577,7 +579,7 @@ def generateXList(firm, date, mdatabase, pdatabase1, pdatabase2, printWarnings=T
         6: AbnVoli,[t-5,t-1]
         7: AbnVolitilityi,[t-5,t-1]
         8: Illiqi,[t-5,t-1]
-    Return -1 if dates not compatible or if no data available
+    Return [] (empty list) if dates not compatible or if no data available
     """
     xlist = []
     # 0
@@ -590,28 +592,28 @@ def generateXList(firm, date, mdatabase, pdatabase1, pdatabase2, printWarnings=T
         print("Entry 1 Computing...")
     xabnstories = abnormalStories(firm, date, mdatabase)
     if xabnstories == -1:
-        return -1
+        return []
     xlist.append(xabnstories)
     # 2
     if printWarnings:
         print("Entry 2 Computing...")
     xterms = terms(firm, date, mdatabase)
     if xterms == -1:
-        return -1
+        return []
     xlist.append(xterms)
     # 3
     if printWarnings:
         print("Entry 3 Computing...")
     xmcap = marketCapLN(firm, date, pdatabase1, printWarnings)
     if xmcap == -1:
-        return -1
+        return []
     xlist.append(xmcap)
     # 4
     if printWarnings:
         print("Entry 4 Computing...")
     xbm = bookToMarketCap(firm, date, pdatabase1, pdatabase2, printWarnings)
     if xbm == -1:
-        return -1
+        return []
     xlist.append(xbm)
     # 5
     if printWarnings:
@@ -621,35 +623,35 @@ def generateXList(firm, date, mdatabase, pdatabase1, pdatabase2, printWarnings=T
     if (int(date) not in pdatabase1.dates) or (pdatabase1.dates.index(int(date)) - 5) < 0:
         if printWarnings:
             print("DATE NOT COMPATIBLE: " + date)
-        return -1
+        return []
     dateLess1 = pdatabase1.dates.index(int(date)) - 1
     dateLess5 = dateLess1 - 4
     dateStartLess5 = str(pdatabase1.dates[dateLess5])
     dateEndLess1 = str(pdatabase1.dates[dateLess1])
     xabnret = abnormalReturn(firm, dateStartLess5, dateEndLess1, pdatabase1, printWarnings)
     if xabnret == -1:
-        return -1
+        return []
     xlist.append(xabnret)
     # 6
     if printWarnings:
         print("Entry 6 Computing...")
     xabnvol = abnormalVol(firm, dateStartLess5, dateEndLess1, pdatabase1, printWarnings)
     if xabnvol == -1:
-        return -1
+        return []
     xlist.append(xabnvol)
     # 7
     if printWarnings:
         print("Entry 7 Computing...")
-    xabnvolit = abnormalVolatility(firm, dateStartLess5, dateEndLess1, pdatabase1, printWarnings)
-    if xabnvolit == -1:
-        return -1
-    xlist.append(xabnvolit)
+    xabnvolat = abnormalVolatility(firm, dateStartLess5, dateEndLess1, pdatabase1, printWarnings)
+    if xabnvolat == -1:
+        return []
+    xlist.append(xabnvolat)
     # 8
     if printWarnings:
         print("Entry 8 Computing...")
     xilliq = illiquidity(firm, dateStartLess5, dateEndLess1, pdatabase1, printWarnings)
     if xilliq == -1:
-        return -1
+        return []
     xlist.append(xilliq)
     # Return
     return xlist

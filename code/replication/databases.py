@@ -16,7 +16,7 @@ class PandasDatabase:
         given data types
         datatype is an optional dictionary mapping column name to pandas type
         1. self.tics: list of contained tickers (initially empty)
-        2. self.dates: list of contained dates (initially empty)
+        2. self.dates: list of contained dates (initially empty), dates are INTEGERS
         """
         self.data = pd.read_csv(file, dtype=datatype, low_memory=False)
         # Drop incomplete rows
@@ -58,7 +58,7 @@ class CRSPDatabase(PandasDatabase):
         self.abnvol: mapping (ticker, date) to firmfrac[(ticker, date)] - vwfrac[date]
         self.mcap: mapping (ticker, date) to market cap for firm on that day
         self.totmcap: mapping date to (sum market caps of all firms, firms available on date)
-        self.abnvolit: mapping (ticker, date) to abnormal volatility for firm on date
+        self.abnvolat: mapping (ticker, date) to abnormal volatility for firm on date
         self.ill: mapping (ticker, date) to illiquidity measure for firm on date
         """
         super().__init__(file, datatype)
@@ -69,7 +69,7 @@ class CRSPDatabase(PandasDatabase):
         self.abnvol = {}
         self.mcap = {}
         self.totmcap = {}
-        self.abnvolit = {}
+        self.abnvolat = {}
         self.ill = {}
 
 
@@ -122,7 +122,7 @@ class MeasuresDatabase(TextDatabase):
     def __init__(self, file):
         """
         Populates the measures database and creates:
-        1. self.dates: Ordered Dictionary of all dates where key = date, value = None
+        1. self.dates: Ordered Dictionary of all dates where key = date, value = None, dates are STRINGS
         2. self.tics: Dictionary of all tickers where key = ticker, value = None
         3. self.tdMap: Dictionary mapping each (ticker, date) tuple to list of relevant news articles
         4. self.aporeg: Empty dictionary for saving AbnPctOld regressions, maps date to regression
