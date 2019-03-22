@@ -15,10 +15,12 @@ def famaMacBethRegression8(dates, firms, mdatabase, pdatabase1, pdatabase2):
     mdatabase: database of news measures
     pdatabase1: crsp data frame
     pdatabase2: compustat data frame
-    Returns dictionary mapping coefficients to values
+    Returns tuple (dictionary mapping coefficients to values, dictionary mapping coefficients to their standard errors)
     """
     # running sum of coefficients as cross-sectional regressions are computed
     coefficients = {'a': 0, 'b': 0, 'g1': 0, 'g2': 0, 'g3': 0, 'g4': 0, 'g5': 0, 'g6': 0, 'g7': 0, 'g8': 0, 'g9': 0}
+    standard_errrors = {'ase': 0, 'bse': 0, 'g1se': 0, 'g2se': 0, 'g3se': 0, 'g4se': 0, 'g5se': 0, 'g6se': 0,
+                        'g7se': 0, 'g8se': 0, 'g9se': 0}
     # for average at end
     num_dates_used = len(dates) - 1
     unused_dates = []
@@ -59,7 +61,9 @@ def famaMacBethRegression8(dates, firms, mdatabase, pdatabase1, pdatabase2):
                            "G2": lists['AbnStories'], "G3": lists['Terms'], "G4": lists['MCap'],
                            "G5": lists['BM'], "G6": lists['AbnRet'], "G7": lists['AbnVol'],
                            "G8": lists['AbnVolitility'], "G9": lists['Illiq']})
-        result = sm.ols(formula="Y ~ B + G1 + G2 + G3 + G4 + G5 + G6 + G7 + G8 + G9", data=df).fit()
+        # 'HAC' for heteroscedasticity and autocorrelation, statsmodels uses Newey-West SE by default
+        result = sm.ols(formula="Y ~ B + G1 + G2 + G3 + G4 + G5 + G6 + G7 + G8 + G9",
+                        data=df).fit(cov_type='HAC', cov_kwds={'maxlags': 1})
         coefficients['a'] += result.params.Intercept
         coefficients['b'] += result.params.B
         coefficients['g1'] += result.params.G1
@@ -71,12 +75,19 @@ def famaMacBethRegression8(dates, firms, mdatabase, pdatabase1, pdatabase2):
         coefficients['g7'] += result.params.G7
         coefficients['g8'] += result.params.G8
         coefficients['g9'] += result.params.G9
+        standard_errrors['ase'] += result.bse.Intercept ** 2
+        standard_errrors['bse'] += result.bse.B ** 2
+        standard_errrors['g1se'] += result.bse.G1 ** 2
+        standard_errrors['g2se'] += result.bse.G2 ** 2
+        standard_errrors['g3se'] += result.bse.G3 ** 2
+        standard_errrors['g4se'] += result.bse.G4 ** 2
+        standard_errrors['g5se'] += result.bse.G5 ** 2
+        standard_errrors['g6se'] += result.bse.G6 ** 2
+        standard_errrors['g7se'] += result.bse.G7 ** 2
+        standard_errrors['g8se'] += result.bse.G8 ** 2
+        standard_errrors['g9se'] += result.bse.G9 ** 2
     print(unused_dates)
     print(num_dates_used)
-    return {key: coefficients[key]/num_dates_used for key in coefficients}
+    return {key: coefficients[key]/num_dates_used for key in coefficients}, \
+           {key: (standard_errrors[key]/(num_dates_used**2))**0.5 for key in standard_errrors}
 
-
-def neweyWestStdErrors():
-    """
-    Newey-West standard errors
-    """
