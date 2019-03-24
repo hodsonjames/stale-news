@@ -2,7 +2,7 @@
    Made by Christopher Gong
 
    Summary:
-The methods below apply the stale news procedure outline in the paper "How does..." by Anasteesia Fedyk and James Hodson. The procedure goes through each article in chronological order from multiple sorted nml files, checking its similarity with articles about the same company that have been previously seen by the procedure and are within the last 72 hours. If an article is about multiple companies, the article will be processed once per company. A provided similarity test is used, and key similarity information (DATE_EST, STORY_ID, TICKER, CLOSEST_ID, CLOSEST_SCORE, TOTAL_OVERLAP, IS_OLD, IS_REPRINT, IS_RECOMB) is written to a csv file. 
+The methods below apply the stale news procedure outline in the paper "When Can the Market Identify Stale News? " by Anasteesia Fedyk and James Hodson. The procedure goes through each article in chronological order from multiple sorted nml files, checking its similarity with articles about the same company that have been previously seen by the procedure and are within the last 72 hours. If an article is about multiple companies, the article will be processed once per company. A provided similarity test is used, and key similarity information (DATE_EST, STORY_ID, TICKER, CLOSEST_ID, CLOSEST_SCORE, TOTAL_OVERLAP, IS_OLD, IS_REPRINT, IS_RECOMB) is written to a csv file. 
 
 Optimizations:
 Understanding the mere size of the number of articles published in a day, and the decade long amount of data to be processed in this way, key optimizations can be made to drastically reduce the time needed to for the procedure. First, articles are processed one at a time in a getter structure for less memory useage. Theoretically, the procedure can handle an infinite sequence of articles. Second, after an article has been processed, only important informaton is kept, in a story class. Lastly, the stories related to a company are stored in a linked list in reverse chronological order. When processing a new article, only the previous 72 hours of articles are considered, and any older articles will be removed by way of cut (or prune) of the linked list, to never have more than 72 hours of articles for a comapny to be stored. This optimization can be made because the articles are considered in chronological order. """
@@ -19,6 +19,7 @@ import datetime
 import heapq
 import numpy as np
 import csv
+import sys
 
 import glob
 fs = glob.glob('data/*.nml')
@@ -221,7 +222,7 @@ class LLNode():
         self.nextNode = nextNode
 
 #actual procedure fn
-def procedure(startlocation = 'data', endlocation='export_dataframe.csv', all=False, count=1000, simtest=None, quiet=False):
+def procedure(startlocation = 'data', endlocation='export_dataframe.csv', simtest=None, all=True, quiet=True, count=1000):
     '''Performs the procedure for the specified amount of articles. Uses all nml files from startlocation, and exports a csv file
     at endlocation.'''
     location = sort(glob.glob(startlocation + '/*.nml'))
@@ -261,4 +262,4 @@ def procedure(startlocation = 'data', endlocation='export_dataframe.csv', all=Fa
         print("Procedure finished.")
 
 if __name__ == '__main__':
-    procedure()
+    procedure(sys.argv[1], sys.argv[2], sys.argv[3])
