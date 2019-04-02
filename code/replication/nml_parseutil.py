@@ -1,16 +1,22 @@
 import datetime
 import xml.etree.ElementTree as ET
 from dateutil import parser
-import sys
-import argparse
+import pandas as pd
+import numpy as np
 
+import sys
+import os
+import argparse
+import csv
+
+sys.path.append("../measures")
 from measure_constants import MeasureConstants
 from article import Article
 from bow_similarity import BOWSimilarity
 
 sim = BOWSimilarity()
 
-def filter_old_articles(company_article_map, curr_article, k_hours=measure_const.NUM_HOURS):
+def filter_old_articles(company_article_map, curr_article, k_hours=sim.measure_const.NUM_HOURS):
     """
     Check the set of articles mapped to curr_article.company, and 
     filter out articles that are at least k_hours older than curr_article. 
@@ -44,7 +50,7 @@ def filter_old_articles(company_article_map, curr_article, k_hours=measure_const
 # 
 
 ############### CHANGE THE NAME OF THIS ######################
-def create_article_map(directory_path, output_csv_name, k_hours=measure_const.NUM_HOURS):
+def create_article_map(directory_path, output_csv_name, k_hours=sim.measure_const.NUM_HOURS):
     """
     Main parsing function. Takes in a directory containing .nml files
     and returns a dictionary with keys that correspond to company symbols,
@@ -76,11 +82,16 @@ def create_article_map(directory_path, output_csv_name, k_hours=measure_const.NU
 
     directory = os.fsencode(directory_path)
     
+    nml_files = []
     for file in os.listdir(directory):
         filename = os.fsdecode(file)
         if ".nml" not in filename:
             continue
+        else:
+            nml_files.append(directory_path + filename)
 
+
+    for filename in sorted(nml_files):
         with open(filename) as myfile:
             for next_line in myfile:
                 curr_file_str += next_line
@@ -96,7 +107,7 @@ def create_article_map(directory_path, output_csv_name, k_hours=measure_const.NU
                         continue
                     company = company[0].text
                     timestamp = xml_elem.find(".//djn-mdata").attrib['display-date']
-                    headline = xml_elem.find(".//headline").text
+                    headline = xml_elem.find(".//headline").text.lstrip()
                     all_text = xml_elem.find(".//text")
                     article_text = "".join(all_text.itertext())
                     text_stemmed_filtered = sim.stem_and_filter(article_text)
@@ -130,6 +141,8 @@ def create_article_map(directory_path, output_csv_name, k_hours=measure_const.NU
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("dir_path", help = "filepath to directory containing .nml files to be parsed")
 arg_parser.add_argument("csv_name", help = "name of .csv file you want to output")
+if len(sys.argv) < 1:
+    arg_parser.print_help(sys.stderr)
 args = arg_parser.parse_args()
 article_map = create_article_map(args.dir_path, args.csv_name)
 print("Parsing done!")

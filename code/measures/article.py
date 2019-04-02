@@ -1,11 +1,13 @@
 import datetime
 from dateutil import parser
+import pytz
 
 class Article:
     
     def __init__(self, company, timestamp, headline, article_text):
         self.company = company
-        self.timestamp = parser.parse(timestamp)
+        est = pytz.timezone('US/Eastern')
+        self.timestamp = parser.parse(timestamp).replace(tzinfo=pytz.utc).astimezone(est)
         self.headline = headline
 
         # article_text should be stemmed and filtered articles

@@ -1,4 +1,3 @@
-import nml_parseutil
 from article import Article
 from measure_constants import MeasureConstants
 from bow_similarity import bow_similarity_score
@@ -17,23 +16,22 @@ vec = TfidfVectorizer()
 
 class CosineSimilarity:
 
-    def __init__(self, measure_const = MeasureConstants(STORAGE_MODE = "string")):
+    def __init__(self, measure_const = MeasureConstants()):
         self.measure_const = measure_const
 
 
-    def stem_and_filter(article):
+    def stem_and_filter(self, text):
         """
         Takes an Article object and tokenizes the article text into a list, then
         removes stop words from the list and stems all the remaining words. Returns
         the article with stemmed words and stop words removed.
         """
-        text = article.article_text
         tokenized = text.split()
         tokenized = [w for w in tokenized if w not in stop_words] # Remove stop words from tokenized text
         stemmed = " ".join([ps.stem(w) for w in tokenized])
         return stemmed
 
-    def compute_sim_measure(curr_article, article_set, num_closest=measure_const.NUM_CLOSEST):
+    def compute_sim_measure(self, curr_article, article_set):
         """
         Calculates Old(s) and ClosestNeighbor(s), where s is curr_article. 
         
@@ -47,6 +45,7 @@ class CosineSimilarity:
             old_score: Old(s)
             closest_neighbor_score: ClosestNeighbor(s)
         """
+        num_closest = self.measure_const.NUM_CLOSEST
         
         stemmed_articles = [curr_article.article_text] + [s.article_text for s in article_set]
         td_matrix = vec.fit_transform(stemmed_articles)
@@ -70,13 +69,13 @@ class CosineSimilarity:
         
         return old_score, closest_neighbor_score
 
-    def is_old_news(old):
-        return old > measure_const.OLD_NEWS
+    def is_old_news(self, old):
+        return old > self.measure_const.OLD_NEWS
 
-    def is_reprint(old, closest_neighbor):
-        reprint = (closest_neighbor / old) >= measure_const.CLOSEST_NEIGHBOR_SHARE
-        return (old > measure_const.OLD_NEWS) * reprint
+    def is_reprint(self, old, closest_neighbor):
+        reprint = (closest_neighbor / old) >= self.measure_const.CLOSEST_NEIGHBOR_SHARE
+        return (old > self.measure_const.OLD_NEWS) * reprint
 
-    def is_recombination(old, closest_neighbor):
-        reprint = (closest_neighbor / old) < measure_const.CLOSEST_NEIGHBOR_SHARE
-        return (old > measure_const.OLD_NEWS) * reprint
+    def is_recombination(self, old, closest_neighbor):
+        reprint = (closest_neighbor / old) < self.measure_const.CLOSEST_NEIGHBOR_SHARE
+        return (old > self.measure_const.OLD_NEWS) * reprint
