@@ -3,6 +3,7 @@
 # Unit and integration tests for databases.py, utils.py
 import databases as d
 import utils as u
+import time
 
 # setup databases to read in from
 compustat = d.PandasDatabase("compustatQ.csv")
@@ -125,8 +126,11 @@ print("Expected: -1 Actual: " + str(u.terms("TWTR", "302123231", db)))
 """
 Test: abnormalStories functionality
 print("Expected: -1 Actual: " + str(u.abnormalStories("PRGO", "20150421", db)))
+start = time.time()
 print("Expected: 0.32727272727272727 Actual: " + str(u.abnormalStories("FCAU", "20150730", db)))
 print("Expected: -0.07272727272727272 Actual: " + str(u.abnormalStories("AAPL", "20150721", db)))
+end = time.time()
+print("Time elapsed: " + str(end - start))
 """
 
 """
@@ -140,17 +144,23 @@ for t in tickers:
 """
 Test: abnormalPercentageOld functionality
 tickers = list(db.tics.keys())
+start = time.time()
 for t in tickers:
     if (t, "20150421") in db.tdMap:
         print(t + " AbnPctOld: " + str(u.abnormalPercentageOld(t, "20150421", db)) + "  PctOld: " + str(u.percentageOld(t, "20150421", db)))
+end = time.time()
+print("Time elapsed: " + str(end - start))
 """
 
 """
 Test: abnormalPercentageRecombinations functionality
 tickers = list(db.tics.keys())
+start = time.time()
 for t in tickers:
     if (t, "20150423") in db.tdMap:
-        print(t + " AbnPctRecombinations: " + str(u.abnormalPercentageRecombinations(t, "20150423", db)) + "  PctRecombinations: " + str(u.percentageRecombinations(t, "20150423", db)))
+        print(t + " AbnPctRecombinations: " + str(u.abnormalPercentageRecombinationsParallel(t, "20150423", db)) + "  PctRecombinations: " + str(u.percentageRecombinations(t, "20150423", db)))
+end = time.time()
+print("Time elapsed: " + str(end - start))
 """
 
 """
@@ -213,14 +223,21 @@ Test: abnormalReturn functionality
 firm = "ORCL"
 dateStart = "20150224"
 dateEnd = "20150226"
+start = time.time()
 print("Expected: 0.001395 Actual: " + str(u.abnormalReturn(firm, dateStart, dateEnd, crsp)))
+end = time.time()
+print("Time elapsed small: " + str(end - start))
 firm = "TSLA"
 dateStart = "20150717"
 dateEnd = "20150731"
+start = time.time()
 print("Expected: 0.014217 Actual: " + str(u.abnormalReturn(firm, dateStart, dateEnd, crsp)))
+end = time.time()
+print("Time elapsed larger: " + str(end - start))
 firm = "TSLA"
 dateStart = "20000103"
 dateEnd = "20150731"
+# date range will not occur in practice, can add extra checks in function to make this fast
 print("Expected: -1 Actual: " + str(u.abnormalReturn(firm, dateStart, dateEnd, crsp)))
 """
 
@@ -261,7 +278,10 @@ if mini:
 else:
     # tests take longer than usual to run, as there is no benefit of cached data without many queries
     date = "20000103"
+    start = time.time()
     print("Expected: 7550986428771.2 Actual: " + str(u.totalMarketCap(date, crsp)[0]))
+    end = time.time()
+    print("Time one operation: " + str(end - start))
     print("Expected: 7550986428771.2 Saved Actual: " + str(u.totalMarketCap(date, crsp)[0]))
     date = "20181231"
     print("Expected: 14718446746677.063 Actual: " + str(u.totalMarketCap(date, crsp)[0]))
@@ -317,7 +337,10 @@ if mini:
 else:
     # tests take longer than usual to run, as there is no benefit of cached data without many queries
     date = "20000103"
+    start = time.time()
     print("Output: " + str(u.allFirmsVolumeFrac(date, crsp)))
+    end = time.time()
+    print("Time elapsed: " + str(end - start))
     print("Saved Output: " + str(u.allFirmsVolumeFrac(date, crsp)))
     date = "20181231"
     print("Output: " + str(u.allFirmsVolumeFrac(date, crsp)))
@@ -360,12 +383,16 @@ if mini:
 else:
     # tests will take a while to run, as there is no benefit of cached data without many queries
     firm = "ORCL"
-    dateStart = "20150224"
-    dateEnd = "20150226"
+    dateStart = "20150223"
+    dateEnd = "20150227"
+    start = time.time()
     print("Output: " + str(u.abnormalVol(firm, dateStart, dateEnd, crsp)))
+    end = time.time()
+    print("Time elapsed: " + str(end - start))
     firm = "TSLA"
     dateStart = "20000103"
     dateEnd = "20150731"
+    # date range will not occur in practice, can add extra checks in PARALLEL function version to make this fast
     print("Expected: -1 Actual: " + str(u.abnormalVol(firm, dateStart, dateEnd, crsp)))
 """
 
@@ -373,7 +400,10 @@ else:
 Test: abnormalVolatilityDate functionality
 firm = "ORCL"
 date = "20000131"
+start = time.time()
 print("Expected: 0.04742965 Actual: " + str(u.abnormalVolatilityDate(firm, date, crsp)))
+end = time.time()
+print("Time elapsed: " + str(end - start))
 firm = "MSFT"
 date = "20181231"
 print("Expected: 0.01184607 Actual: " + str(u.abnormalVolatilityDate(firm, date, crsp)))
@@ -387,6 +417,13 @@ print("Output: " + str(u.abnormalVolatilityDate(firm, date, crsp)))
 
 """
 Test: abnormalVolatility functionality
+firm = "ORCL"
+dateStart = "20000131"
+dateEnd = "20000204"
+start = time.time()
+print("Output: " + str(u.abnormalVolatility(firm, dateStart, dateEnd, crsp)))
+end = time.time()
+print("Time elapsed: " + str(end - start))
 firm = "ORCL"
 dateStart = "20000131"
 dateEnd = "20000131"
@@ -423,7 +460,10 @@ Test: illiquidity functionality
 firm = "ORCL"
 dateStart = "20000103"
 dateEnd = "20000107"
+start = time.time()
 print("Expected: -6.09853739932 Actual: " + str(u.illiquidity(firm, dateStart, dateEnd, crsp)))
+end = time.time()
+print("Time elapsed: " + str(end - start))
 firm = "TSLA"
 dateStart = "20181221"
 dateEnd = "20181228"
@@ -465,15 +505,24 @@ Test: generateXList functionality
 # first computation will always be slow
 firm = "AAPL"
 date = "20150721"
+start = time.time()
 print("Output: " + str(u.generateXList(firm, date, db, crsp, compustat)))
+end = time.time()
+print("Time elapsed first: " + str(end - start))
 # all subsequent computations on the same day are extremely fast
 firm = "MSFT"
 date = "20150721"
+start = time.time()
 print("Output: " + str(u.generateXList(firm, date, db, crsp, compustat)))
+end = time.time()
+print("Time elapsed same: " + str(end - start))
 # first computation on the next business day is somewhat slow
 firm = "QCOM"
 date = "20150722"
+start = time.time()
 print("Output: " + str(u.generateXList(firm, date, db, crsp, compustat)))
+end = time.time()
+print("Time elapsed next: " + str(end - start))
 # all subsequent computations on the same day are extremely fast
 firm = "BA"
 date = "20150722"
