@@ -1,8 +1,10 @@
 # tester.py
 # -------
 # Unit and integration tests for databases.py, utils.py
+# When testing for TIMING of function implementations rerun test from beginning (to disentangle caching influence)
 import databases as d
 import utils as u
+import utilsp as up
 import time
 
 # setup databases to read in from
