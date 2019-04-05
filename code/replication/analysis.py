@@ -1,208 +1,376 @@
-import math
-import datetime
 import numpy as np
 import pandas as pd
-from datascience import *
-from linearmodels.panel import FamaMacBeth, PanelOLS
+from linearmodels.panel import PanelOLS, FamaMacBeth
+import statsmodels.api as sm
+import time
 
-# TODO: directly use pandas instead of using datascience wrapper
-# TODO: collect garbage (optimize memory)
+"""
+CRSP Daily Stock
+https://wrds-web.wharton.upenn.edu/wrds/ds/crsp/stock_a/dsf.cfm?navId=128
+2014-01-01 to 2015-12-31
+sim_tickers.txt
+Ticker, Price, Return without Dividends, Share Volume, Number of Shares Outstanding
 
-####### I. Import data #######
-headers = ("id", "ticker", "date", "time", "Old", "ClosestNeighbor", "length", "closest1", "closest2")
-data = pd.read_csv("../data/simulated_data.txt", names=headers)
-data = Table.from_pd(data)
+Computstat Unrestated Quarterly
+https://wrds-web.wharton.upenn.edu/wrds/ds/comph/urq/indexus.cfm?navId=93
+2014 to 2015
+Entire Database
+Data Date, Report Date of Qtly Earnings, Unrestated Data Values, ATQ - Assets - Total - Qtly
+"""
 
-# Quarterly Book Value: Compustat Unrestated Quarterly (TIC: Data Date, ATQ, Unrestated Data Values)
-quarterly = Table.read_table("../data/quarterly.csv")
-quarterly = quarterly.with_column("atqr_exists", np.isnan(quarterly.column("atqr")))
-quarterly = quarterly.where("atqr_exists", False).drop("atqr_exists")
-quarterly = quarterly.select("tic","datadate","atqr").relabel("tic", "ticker").relabel("datadate", "date").relabel("atqr","BVal")
-quarterly.sort("date")
-
-# Daily Market Cap: Compustat Daily Updates - Security Daily (TIC: CSHOC, CSHTRD, PRCOD, PRCCD, PRCHD?, PRCLD?)
-    # CRSP Daily Stock??
-daily = Table.read_table("../data/daily.csv") # TODO: Only 2015??
-daily = daily.with_column("MCap", daily.column("cshoc") * daily.column("prcod"))
-daily = daily.with_column("return", (daily.column("prcod") - daily.column("prccd"))/daily.column("prcod"))
-daily = daily.with_column("frac", daily.column("cshtrd")/daily.column("cshoc"))
-daily = daily.with_column("volatility", daily.column("prchd") - daily.column("prcld"))
-# TODO: ERROR - Data N/A?
-daily = daily.with_column("MCap_exists", np.isnan(daily.column("MCap")))
-daily = daily.where("MCap_exists", False).drop("MCap_exists")
-daily = daily.drop("gvkey", "iid").relabel("datadate", "date").relabel("tic", "ticker")
-
-
-####### II. Construct individual story factors #######
 OLD_THRESHOLD = 0.6
 REPRINT_RECOMBINATION_THRESHOLD = 0.8
-data = data.with_column("OldNews", data.column("Old") > OLD_THRESHOLD)
-data = data.with_column("share_spanned", data.column("ClosestNeighbor") / data.column("Old"))
-data = data.with_column("Reprint", data.apply(lambda row: row[9] and row[10] >= REPRINT_RECOMBINATION_THRESHOLD))
-data = data.with_column("Recombination", data.apply(lambda row: row[9] and row[10] < REPRINT_RECOMBINATION_THRESHOLD))
-data = data.relabel("length", "unique")
 
+daily_mcap = lambda row: row["price"] * row["outstanding"]
+daily_turnover = lambda row: row["volume"] / row["outstanding"]
 
-####### III. Construct firm factors #######
+simulated_oldnews = lambda row: row["Old"] > OLD_THRESHOLD
+simulated_span = lambda row: row["ClosestNeighbor"] / row["Old"]
+simulated_reprint = lambda row: row["OldNews"] and row["span"] >= REPRINT_RECOMBINATION_THRESHOLD
+simulated_recombination = lambda row: row["OldNews"] and row["span"] < REPRINT_RECOMBINATION_THRESHOLD
 
-# main factors
-groupCount = data.group(["ticker", "date"])
-groupSum = data.group(["ticker", "date"], np.sum)
-firms = Table().with_columns("ticker", groupCount.column("ticker"),
-                             "date", groupCount.column("date"),
-                             "PctOld", groupSum.column("OldNews sum")/groupCount.column("count"),
-                             "PctRecombination", groupSum.column("Recombination sum")/groupCount.column("count"),
-                             "ExtentOld", groupSum.column("Old sum")/groupCount.column("count"),
-                             "ExtentRecombination", (groupSum.column("Old sum")-groupSum.column("ClosestNeighbor sum"))/groupCount.column("count"))
+time_start = time.time()
 
-# abnormal factors
-avg_unique_data = data.group(["date"], np.average)
-def avg_unique(date):
-    return avg_unique_data.where("date", date).column("unique average").item(0)
-firms = firms.with_columns("log(|S|)", np.log(groupCount.column("count")),
-                          "log(avg_unique)", np.log(firms.apply(avg_unique, "date")),
-                          "log(avg_unique)^2", np.square(np.log(firms.apply(avg_unique, "date"))))
+### Daily ###
+# PERMNO, date, TICKER, PRC, VOL, SHROUT, RETX
+# date, ticker, price, volume, oustanding, return, mcap, turnover
+data_daily = pd.read_csv("../data/data_daily.csv")
+print("Read " + str(len(data_daily.values)) + " rows from daily data.")
+daily_dates = list(set(data_daily["date"]))
+print("\tFound " + str(len(daily_dates)) + " unique dates from daily data.")
+data_daily = data_daily.query("RETX != 'C' & RETX != 'B'")
+print("\tRemoved rows with weird RETX values. " + str(len(data_daily.values)) + " rows remain.")
+data_daily["RETX"] = data_daily["RETX"].astype("float64")
+# Filter and add factors
+data_daily = data_daily.drop(["PERMNO"], axis=1)
+data_daily = data_daily.rename(index=str, columns={"TICKER":"ticker", "PRC":"price", "VOL":"volume", "SHROUT":"outstanding", "RETX":"return"})
+data_daily["mcap"] = data_daily.apply(daily_mcap, axis=1)
+data_daily["turnover"] = data_daily.apply(daily_turnover, axis=1)
+# data_daily = data_daily.set_index(['ticker', 'date'])
 
-firms_df = firms.to_df().set_index(['ticker', 'date'])
+### Quarterly ###
+# gvkey, tic, datadate, fqtr, qtryr, rdq, atqr
+# date, ticker, assets
+data_quarterly = pd.read_csv("../data/data_quarterly.csv").dropna() # drop rows with null values
+print("Read " + str(len(data_quarterly.values)) + " non-empty rows from quarterly data.")
+# alternatively, forward-fill
+# Filter and add factors
+data_quarterly = data_quarterly.drop(["gvkey", "fqtr", "qtryr", "datadate"], axis=1)
+data_quarterly = data_quarterly.rename(index=str, columns={"tic":"ticker", "rdq":"date", "atqr":"assets"})
+data_quarterly["date"] = data_quarterly["date"].astype("int64")
+# data_quarterly = data_quarterly.set_index(['ticker'])
+data_quarterly = data_quarterly.sort_values("date", ascending=False)
 
-extentOldModel = PanelOLS(firms_df[["ExtentOld"]], firms_df[["log(|S|)", "log(avg_unique)", "log(avg_unique)^2"]]).fit()
-extentRecombinationModel = PanelOLS(firms_df[["ExtentRecombination"]], firms_df[["log(|S|)", "log(avg_unique)", "log(avg_unique)^2"]]).fit()
+### Simulated ###
+# id,ticker,date,time,Old,ClosestNeighbor,length,closest1,closest2
+# id,ticker,date,time,Old,ClosestNeighbor,length,closest1,closest2,OldNews,span,Reprint,Recombination
+data_simulated = pd.read_csv("../data/data_simulated.csv")
+print("Read " + str(len(data_simulated.values)) + " rows from simulated data.")
+print("\tFound " + str(len(set(data_simulated["ticker"]))) + " unique tickers from simulated data.")
+# Discard values which do not exist in Daily, Quarterly
+daily_tickers = set(data_daily["ticker"])
+data_simulated = data_simulated[data_simulated.ticker.isin(daily_tickers)]
+quarterly_tickers = set(data_quarterly["ticker"])
+data_simulated = data_simulated[data_simulated.ticker.isin(quarterly_tickers)]
+print("\tDiscarded tickers not found in daily/quarterly. " + str(len(set(data_simulated["ticker"]))) + " unique tickers remain.")
+# Filter and add factors
+data_simulated["OldNews"] = data_simulated.apply(simulated_oldnews, axis=1)
+data_simulated["span"] = data_simulated.apply(simulated_span, axis=1)
+data_simulated["Reprint"] = data_simulated.apply(simulated_reprint, axis=1)
+data_simulated["Recombination"] = data_simulated.apply(simulated_recombination, axis=1)
 
-abnPctOld = Table.from_df(firms_df).column("ExtentOld") - Table.from_df(extentOldModel.predict(firms_df[["log(|S|)", "log(avg_unique)", "log(avg_unique)^2"]])).column("predictions")
-abnPctRecombination = Table.from_df(firms_df).column("ExtentOld") - Table.from_df(extentRecombinationModel.predict(firms_df[["log(|S|)", "log(avg_unique)", "log(avg_unique)^2"]])).column("predictions")
+time_end = time.time()
+print("Imported data in " + str(round(time_end - time_start, 2)) + " seconds.")
 
-firms = firms.with_columns("AbnPctOld", abnPctOld,
-                           "AbnPctRecombination", abnPctRecombination)
+################################################################
 
+time_start = time.time()
 
-####### IV. Regressions #######
+data_split = data_simulated.groupby(['ticker', 'date'])
+data_split_agg = data_split.agg({
+    "ticker": ["count"],
+    "Old": ["sum"],
+    "ClosestNeighbor": ["sum"],
+    "OldNews": ["sum"],
+    "Recombination": ["sum"],
+    "length": ["mean"]
+})
 
-def dateSubtract(d, minusDays):
-    new_date = datetime.date(d//10000, d//100%100, d%100) - datetime.timedelta(minusDays)
-    return new_date.year*10000+new_date.month*100+new_date.day
+firms_pctold = lambda row: row["OldNews"]["sum"] / row["ticker"]["count"]
+firms_pctrecombination = lambda row: row["Recombination"]["sum"] / row["ticker"]["count"]
+firms_extentold = lambda row: row["Old"]["sum"] / row["ticker"]["count"]
+firms_extentrecombination = lambda row: row["ExtentOld"] - row["ClosestNeighbor"]["sum"] / row["ticker"]["count"]
 
-# TODO: ERROR - Ticker DNE
-tickerDNE = []
-# """
-for ticker in firms.group("ticker").column("ticker"):
-    if daily.where("ticker", ticker).num_rows == 0:
-        tickerDNE.append(ticker)
-# """
+data_firms = data_split_agg
+data_firms["PctOld"] = data_firms.apply(firms_pctold, axis=1)
+data_firms["PctRecombination"] = data_firms.apply(firms_pctrecombination, axis=1)
+data_firms["ExtentOld"] = data_firms.apply(firms_extentold, axis=1)
+data_firms["ExtentRecombination"] = data_firms.apply(firms_extentrecombination, axis=1)
+data_firms = data_firms.drop(["Old", "ClosestNeighbor", "OldNews", "Recombination"], axis=1)
 
-dailyAverage = daily.group("date", np.average)
+# Abnormal Factors
+firms_logsize = lambda row: np.log(row["ticker"]["count"])
+firms_logavgunique = lambda row: np.log(row["length"]["mean"])
+firms_logavguniquesq = lambda row: np.square(row["log(avg_unique)"])
 
-# TODO: how do we calculate 'return'? close-open? percentage or pts?
-# assuming: (close - open)/open (%)
-# value-weighted..?
-def abnRet(row):
-    if row[0] in tickerDNE:
-        return None
-    prevDayAvgReturn = dailyAverage.where("date", dateSubtract(row[1], 1)).column("return average").item(0)
-    return daily.where("ticker", row[0]).where("date", row[1]).column("return").item(0) - prevDayAvgReturn
+data_firms["log(|S|)"] = data_firms.apply(firms_logsize, axis=1)
+data_firms["log(avg_unique)"] = data_firms.apply(firms_logavgunique, axis=1)
+data_firms["log(avg_unique)^2"] = data_firms.apply(firms_logavguniquesq, axis=1)
+# data_firms = data_firms.drop(["ticker", "length"], axis=1)
 
-# 'shares turned over' = trading volume?
-# assuming: frac for day t+1, avg frac for all firms on day t
-def abnVol(row):
-    if row[0] in tickerDNE:
-        return None
-    prevDayAvgFrac = dailyAverage.where("date", dateSubtract(row[1], 1)).column("frac average").item(0)
-    return daily.where("ticker", row[0]).where("date", row[1]).column("frac").item(0) - prevDayAvgFrac
+model_extentOld = PanelOLS(data_firms["ExtentOld"], sm.add_constant(data_firms[["log(|S|)", "log(avg_unique)", "log(avg_unique)^2"]])).fit()
+model_extentRecombination = PanelOLS(data_firms[["ExtentRecombination"]], sm.add_constant(data_firms[["log(|S|)", "log(avg_unique)", "log(avg_unique)^2"]])).fit()
 
-firms = firms.with_column("AbnRet", groupCount.apply(abnRet))
-firms = firms.with_column("AbnVol", groupCount.apply(abnVol))
+data_firms.columns = data_firms.columns.droplevel(1)
 
-# calculate X
+data_firms = pd.concat([data_firms, model_extentOld.resids.rename("AbnPctOld"), model_extentRecombination.resids.rename("AbnPctRecombination")], axis=1)
+data_firms = data_firms.drop(["log(|S|)", "log(avg_unique)", "log(avg_unique)^2"], axis=1)
 
-def abn_stories(row):
-    forFirm = groupCount.where("ticker", row[0])
-    oneWeekAgo = dateSubtract(row[1], 5)
-    twoMonthsAgo = dateSubtract(row[1], 60)
-    pastWeek = np.average(forFirm.where("date", are.between(oneWeekAgo, row[1])).column("count"))
-    pastTwoMonths = np.average(forFirm.where("date", are.between(twoMonthsAgo, oneWeekAgo)).column("count"))
-    return pastWeek - pastTwoMonths
+data_firms = data_firms.rename(index=str, columns={"ticker":"count"})
 
-def m_cap(row):
-    return daily.where("ticker", row[0]).where("date", row[1]).column("MCap").item(0)
+# data_split.get_group('??')
 
-def recent_quarter_bval(row):
-    return quarterly.where("ticker", row[0]).where("date", are.below_or_equal_to(row[1])).sort("date").column("BVal").item(0)
+time_end = time.time()
+print("Created firm factors in " + str(round(time_end - time_start, 2)) + " seconds.")
 
-def bm(row):
-    return recent_quarter_bval(row)/m_cap(row)
+################################################################
 
-def abn_ret_pweek(row):
-    return np.sum(firms.where("ticker", row[0]).where("date", are.between(dateSubtract(row[1], 5), row[1])).column("AbnRet"))
+daily_dates.sort()
 
-def abn_vol_pweek(row):
-    return np.average(firms.where("ticker", row[0]).where("date", are.between(dateSubtract(row[1], 5), row[1])).column("AbnVol"))
+def date_shift(date, shift):
+    assert date in daily_dates
+    return daily_dates[daily_dates.index(date)+shift]
 
-# TODO: how do we calculate 'volatility'? 
-# assuming: high-low
-def abn_volatility_pweek(row):
-    prevDaysAvgVolatility = dailyAverage.where("date", are.between(dateSubtract(row[1], 5), row[1])).column("frac volatility").item(0)
-    return daily.where("ticker", row[0]).where("date", row[1]).column("volatility").item(0) - prevDayAvgVolatility
+time_start = time.time()
 
-# volume = closing * trading vol
-def illiq_pweek(row):
-    prior_week = daily.where("ticker", row[0]).where("date", are.between(dateSubtract(row[1], 5), row[1]))
-    prior_week_illiq = 10e6 * prior_week.column("return") / (prior_week.column("cshtrd") * prior_week.column("prccd"))
-    return np.log(np.average(prior_week_illiq))
+# DAILY & DAY CALCULATIONS
+# Day: ValueWeightedReturn, ValueWeightedTurnover
+# Daily: date, ticker, price, volume, oustanding, return, mcap, turnover,
+#        WeightedReturn, WeightedTurnover, AbnRet, AbnVol
 
-Stories = groupCount.column("count") # all stories in data are relevant, each row is a story
-AbnStories = groupCount.apply(abn_stories)
-Terms = groupSum.column("unique sum")/groupCount.column("count")
-MCap = groupCount.apply(m_cap)
-BM = groupCount.apply(bm)
-# TODO: business days?
-AbnRetPW = groupCount.apply(abn_ret_pweek)
-AbnVolPW = groupCount.apply(abn_vol_pweek)
-AbnVolatilityPW = groupCount.apply(abn_volatility_pweek)
-IlliqPW = groupCount.apply(illiq_pweek)
+daily_wr = lambda row: row["mcap"] * row["return"]
+daily_wt = lambda row: row["mcap"] * row["turnover"]
+data_daily["WeightedReturn"] = data_daily.apply(daily_wr, axis=1)
+data_daily["WeightedTurnover"] = data_daily.apply(daily_wt, axis=1)
 
-firms = firms.with_columns("Stories", Stories,
-                           "AbnStories", AbnStories,
-                           "Terms", Terms,
-                           "MCap", MCap,
-                           "BM", BM,
-                           "AbnRetPW", AbnRetPW,
-                           "AbnVolPW", AbnVolPW,
-                           "AbnVolatilityPW", AbnVolatilityPW,
-                           "IlliqPW", IlliqPW)
+data_day = data_daily.groupby(["date"]).agg({
+    "mcap": ["sum"],
+    "WeightedReturn": ["sum"],
+    "WeightedTurnover": ["sum"]
+})
+day_vwr = lambda row: row["WeightedReturn"]["sum"] / row["mcap"]["sum"]
+day_vwt = lambda row: row["WeightedTurnover"]["sum"] / row["mcap"]["sum"]
+data_day["ValueWeightedReturn"] = data_day.apply(day_vwr, axis=1)
+data_day["ValueWeightedTurnover"] = data_day.apply(day_vwt, axis=1)
+data_day.columns = data_day.columns.droplevel(1)
 
-firms = firms.with_column("a", 1)
-firms_df = firms.take().to_df().set_index(['ticker', 'date'])
+def daily_abnret(row):
+    if (row["date"] == daily_dates[0]):
+        return 0
+    return row["return"] - data_day.filter(items=[date_shift(row["date"], -1)], axis=0)["ValueWeightedReturn"].values[0]
+def daily_abnvol(row):
+    if (row["date"] == daily_dates[0]):
+        return 0
+    return row["return"] - data_day.filter(items=[row["date"]], axis=0)["ValueWeightedTurnover"].values[0]
+data_daily["AbnRet"] = data_daily.apply(daily_abnret, axis=1)
+data_daily["AbnVol"] = data_daily.apply(daily_abnvol, axis=1)
 
-# Regressions for Market Reactions to Old News (pg18) 
-    # dependent: Abn___[i,t+1]
-    # exogenous: 1, AbnPctOld, Controls
-params = ["a", "AbnPctOld", "Stories", "AbnStories", "Terms", "MCap", "BM", "AbnRetPW", "AbnVolPW", "AbnVolatilityPW", "IlliqPW"]
-# Do we need to shift AbnRet and AbnVol by a day? Yes.
-abnRetModel_OldNews = FamaMacBeth(firms_df[["AbnRet"]][1:], firms_df[params][:-1]).fit('heteroskedastic', 'bartlett')
-abnVolModel_OldNews = FamaMacBeth(firms_df[["AbnVol"]][1:], firms_df[params][:-1]).fit('heteroskedastic', 'bartlett')
+time_end = time.time()
+print("Calculated daily variables in " + str(round(time_end - time_start, 2)) + " seconds.")
+# time_start = time.time()
 
-# Regressions for Market Reactions to Recombinations (pg20)
-    # dependent: Abn___[i,t+1]
-    # exogenous: 1, AbnPctOld, AbnPctRecombination, Controls
-params = ["a", "AbnPctOld", "AbnPctRecombinations", "Stories", "AbnStories", "Terms", "MCap", "BM", "AbnRetPW", "AbnVolPW", "AbnVolatilityPW", "IlliqPW"]
-abnRetModel_Recombination = FamaMacBeth(firms_df[["AbnRet"]][1:], firms_df[params][:-1]).fit('heteroskedastic', 'bartlett')
-abnVolModel_Recombination = FamaMacBeth(firms_df[["AbnVol"]][1:], firms_df[params][:-1]).fit('heteroskedastic', 'bartlett')
+# REGRESSION/VECTOR CALCULATIONS
 
-# Regressions for Market Reversal Reactions to Recombinations (pg21)
-    # dependent: AbnRet[i,[t+t1,t+t2]]
-    # exogenous: 1, AbnPctOld, AbnPctOld*AbnRet, AbnRet, AbnPctRecombination, AbnPctRecombination*AbnRet, Controls
-firms = firms.with_columns("AbnPctOld*AbnRet", firms.column("AbnPctOld")*firms.column("AbnRet"),
-                           "AbnPctRecombination*AbnRet", firms.column("AbnPctRecombination")*firms.column("AbnRet"))
-firms_df = firms.take().to_df().set_index(['ticker', 'date'])
-# Typo on pg21, last paragraph?
-params = ["a", "AbnPctOld", "AbnPctOld*AbnRet", "AbnRet", "AbnPctRecombination", "AbnPctRecombination*AbnRet", "Stories", "AbnStories", "Terms", "MCap", "BM", "AbnRetPW", "AbnVolPW", "AbnVolatilityPW", "IlliqPW"]
-# TODO: Switch this to [t+t1, t+t2] instead of just [t+1]
-abnRetModel_Reversal = FamaMacBeth(firms_df[["AbnRet"]][1:], firms_df[params][:-1]).fit('heteroskedastic', 'bartlett')
+data_daily.to_csv("../data/output_daily.csv")
+data_quarterly.to_csv("../data/output_quarterly.csv")
+data_simulated.to_csv("../data/output_simulated.csv")
+data_day.to_csv("../data/output_indivDay.csv")
+data_firms.to_csv("../data/output_firms.csv")
 
+data_firms = pd.read_csv("../data/output_firms.csv")
 
-####### V. Output #######
+time_start = time.time()
+data_vector = pd.read_csv("../data/output_firms.csv")
+data_vector = data_vector[data_vector.date.isin(daily_dates)]
+data_vector.set_index(["ticker", "date"])
+# data_vector = data_firms.query()
 
-print(abnRetModel_OldNews.params)
-print(abnVolModel_OldNews.params)
-print(abnRetModel_Recombination.params)
-print(abnVolModel_Recombination.params)
-print(abnRetModel_Reversal.params)
+NO_RESULT = 0 #np.nan
+
+def query(db, q, val):
+    result = db.query(q)
+    if len(result) == 0:
+        return NO_RESULT
+    return result[val].values[0]
+
+def vector_abnret(row):
+    return query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(row["date"]), "AbnRet")
+    """
+    q = data_daily.query("ticker == '" + row["ticker"] + "' & date == " + str(row["date"]))
+    if len(q) == 0:
+        return NO_RESULT
+    return q["AbnRet"].values[0]
+    """
+
+def vector_absabnret(row):
+    return abs(row["AbnRet"])
+
+def vector_abnvol(row):
+    return query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(row["date"]), "AbnVol")
+    """
+    q = data_daily.query("ticker == '" + row["ticker"] + "' & date == " + str(row["date"]))
+    if len(q) == 0:
+        return NO_RESULT
+    return q["AbnVol"].values[0]
+    """
+
+def vector_stories(row):
+    return row["count"]
+
+def helper_stories(firm, date):
+    return query(data_firms, "ticker == '" + firm + "' & date == " + str(date), "count")
+    """
+    q = data_firms.filter(items=[(firm, date)], axis=0)
+    if len(q) == 0:
+        return NO_RESULT
+    return q["count"].values[0]
+    """
+
+def vector_abnstories(row):
+    storiesPastWeek, storiesPast3Mo = 0, 0
+    for i in range(-5, 0):
+        storiesPastWeek += helper_stories(row["ticker"], date_shift(row["date"], i))
+    for i in range(-60, -5):
+        storiesPast3Mo += helper_stories(row["ticker"], date_shift(row["date"], i))
+    storiesPastWeek /= 5.
+    storiesPast3Mo /= 55.
+    return storiesPastWeek - storiesPast3Mo
+
+def vector_terms(row):
+    return row["length"]
+
+def vector_mcap(row):
+    return query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(row["date"]), "mcap")
+    """
+    q = data_daily.query("ticker == '" + row["ticker"] + "' & date == " + str(row["date"]))
+    if len(q) == 0:
+        return NO_RESULT
+    return q["mcap"].values[0]
+    """
+
+def vector_bm(row):
+    q = data_quarterly.where(data_quarterly["ticker"] == row["ticker"]).where(data_quarterly["date"] < row["date"]).dropna()
+    if len(q) == 0:
+        return np.nan
+    return q["assets"].values[0]
+
+def vector_abnretprev5(row):
+    pastWeek = 0
+    for i in range(-5, 0):
+        pastWeek += query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)), "AbnRet")
+        # pastWeek += data_daily.query("ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)))["AbnRet"].values[0]
+    return pastWeek
+
+def vector_abnvolprev5(row):
+    pastWeek = 0
+    for i in range(-5, 0):
+        pastWeek += query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)), "AbnVol")
+        # pastWeek += data_daily.query("ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)))["AbnVol"].values[0]
+    return pastWeek / 5
+
+def vector_volatility(row):
+    abnReturns = []
+    for i in range(-20, 1):
+        abnReturns.append(query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)), "AbnRet"))
+        # abnReturns.append(data_daily.query("ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)))["AbnRet"].values[0])
+    return np.std(abnReturns)
+
+def vector_abnvolatility(row):
+    pastWeek = 0
+    for i in range(-5, 0):
+        pastWeek += query(data_vector, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)), "Volatility")
+        # pastWeek += data_vector.query("ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)))["Volatility"].values[0]
+    return row["Volatility"] - pastWeek / 5
+
+def vector_illiq(row):
+    pastWeek = 0
+    for i in range(-5, 0):
+        it = data_daily.query("ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)))
+        if len(it) == 0:
+            pastWeek += NO_RESULT
+            continue
+        Ret = it["return"].values[0]
+        Vol = it["volume"].values[0] * it["price"].values[0]
+        pastWeek += 10**6 * np.abs(Ret) / Vol
+    return pastWeek / 5
+
+data_vector["AbnRet"] = data_vector.apply(vector_abnret, axis=1)
+data_vector["|AbnRet|"] = data_vector.apply(vector_absabnret, axis=1)
+data_vector["AbnVol"] = data_vector.apply(vector_abnvol, axis=1)
+data_vector["Stories"] = data_vector.apply(vector_stories, axis=1)
+data_vector["AbnStories"] = data_vector.apply(vector_abnstories, axis=1)
+data_vector["Terms"] = data_vector.apply(vector_terms, axis=1)
+data_vector["MCap"] = data_vector.apply(vector_mcap, axis=1)
+data_vector["BM"] = data_vector.apply(vector_bm, axis=1)
+data_vector["AbnRetPrev5"] = data_vector.apply(vector_abnretprev5, axis=1)
+data_vector["AbnVolPrev5"] = data_vector.apply(vector_abnvolprev5, axis=1)
+data_vector["Volatility"] = data_vector.apply(vector_volatility, axis=1)
+data_vector["AbnVolatility"] = data_vector.apply(vector_abnvolatility, axis=1)
+data_vector["Illiq"] = data_vector.apply(vector_illiq, axis=1)
+
+time_end = time.time()
+print("Calculated regression variables in " + str(round(time_end - time_start, 2)) + " seconds.")
+
+data_vector = data_vector.dropna()
+data_vector.to_csv("../data/output_vector.csv")
+
+################################################################
+
+time_start = time.time()
+
+params = ["AbnPctOld", "Stories", "AbnStories", "Terms", "MCap", "BM", "AbnRetPrev5", "AbnVolPrev5", "AbnVolatility", "Illiq"]
+
+data_model = data_vector[["ticker", "date"]]
+depAbnRet = lambda row: query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], -1)), "AbnRet")
+depAbnVol = lambda row: query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], -1)), "AbnVol")
+data_model["AbnRet+1"] = data_model.apply(depAbnRet, axis=1)
+data_model["AbnVol+1"] = data_model.apply(depAbnVol, axis=1)
+
+data_model = data_model.set_index(['ticker', 'date'])
+data_vector = data_vector.set_index(['ticker', 'date'])
+
+abnRetModel_OldNews = FamaMacBeth(data_model[["AbnRet+1"]], sm.add_constant(data_vector[params])).fit('heteroskedastic', 'bartlett')
+abnVolModel_OldNews = FamaMacBeth(data_model[["AbnVol+1"]], sm.add_constant(data_vector[params])).fit('heteroskedastic', 'bartlett')
+
+print("Market Reactions to Old News")
+print(abnRetModel_OldNews)
+print(abnVolModel_OldNews)
+
+"""
+# this shifting is not proper 
+
+abnRetModel_OldNews = FamaMacBeth(data_vector[["AbnRet"]][1:], sm.add_constant(data_vector[params][:-1])).fit('heteroskedastic', 'bartlett')
+abnRetModel_OldNews = FamaMacBeth(data_vector[["AbnVol"]][1:], sm.add_constant(data_vector[params][:-1])).fit('heteroskedastic', 'bartlett')
+
+params = ["AbnPctOld", "AbnPctRecombinations", "Stories", "AbnStories", "Terms", "MCap", "BM", "AbnRetPrev5", "AbnVolPrev5", "AbnVolatility", "Illiq"]
+
+abnRetModel_Recombination = FamaMacBeth(data_vector[["AbnRet"]][1:], sm.add_constant(data_vector[params][:-1])).fit('heteroskedastic', 'bartlett')
+abnRetModel_Recombination = FamaMacBeth(data_vector[["AbnVol"]][1:], sm.add_constant(data_vector[params][:-1])).fit('heteroskedastic', 'bartlett')
+
+print("Market Reactions to Old News")
+print(abnRetModel_OldNews)
+print(abnRetModel_OldNews)
+
+print("Market Reactions to Recombinations")
+print(abnRetModel_Recombination)
+print(abnRetModel_Recombination)
+"""
+
+time_end = time.time()
+print("Calculated regressions in " + str(round(time_end - time_start, 2)) + " seconds.")
+
+"""
+Confusion:
+Quarterly Data, Line 4712
+For shifting days, using the days within Daily, not from Simulated Data
+"""
