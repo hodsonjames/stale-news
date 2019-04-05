@@ -179,7 +179,7 @@ def firmReturn(firm, date, pdatabase, printWarnings=True):
     Returns FLOAT
     """
     retQuery = pdatabase.data.query('(TICKER == "' + firm + '") & (date == "' + date + '")')
-    if retQuery.empty:
+    if retQuery.empty or retQuery["RETX"].iat[0] == 'C':
         if printWarnings:
             print("NO RETURN DATA: " + firm + ", " + date)
         return -1
@@ -189,6 +189,32 @@ def firmReturn(firm, date, pdatabase, printWarnings=True):
 def allFirmsReturn(date, pdatabase, printWarnings=True):
     """
     Return on value-weighted index of all firms in universe on date
+    Uses decimal representation
+    Relies on naming of pdatabase (crsp)
+    Returns -1 if no data available
+    Returns FLOAT
+    """
+    if date in pdatabase.vwret:
+        return pdatabase.vwret[date]
+    tmcapTuple = totalMarketCap(date, pdatabase, printWarnings)
+    totMCap = tmcapTuple[0]
+    relevantFirms = tmcapTuple[1]
+    if totMCap == -1:
+        return -1
+    weightedReturnTot = 0.0
+    for tic in relevantFirms:
+        ticMCap = marketCap(tic, date, pdatabase)  # constant time lookup
+        ticReturn = firmReturn(tic, date, pdatabase, printWarnings)
+        weightedReturnTot += ticMCap*ticReturn
+    weightedReturn = weightedReturnTot/totMCap
+    # save the computation for repeated use
+    pdatabase.vwret[date] = weightedReturn
+    return weightedReturn
+
+
+def allFirmsReturnGlobal(date, pdatabase, printWarnings=True):
+    """
+    Return on value-weighted index of all firms in U.S. markets
     Uses decimal representation
     Relies on naming of pdatabase (crsp)
     Returns -1 if no data available

@@ -72,11 +72,12 @@ Test: famaMacBethRegression8_9 equation 8 functionality
 'g2se': 2.8856124864335086e-16, 'g3se': 5.825395349848871e-19, 'g4se': 1.4565904647430257e-16, 
 'g5se': 3.030601942675734e-16, 'g6se': 1.7010502909298193e-16, 'g7se': 1.504125168007829e-16, 
 'g8se': 1.0545711405444639e-16, 'g9se': 5.304066408166379e-16})
+"""
 start = time.time()
 print(r.famaMacBethRegression8_9(sharedDates, sharedTics, db, crsp, compustat))
 end = time.time()
 print(end - start)
-"""
+
 
 """
 Test: famaMacBethRegression8_9 equation 9 functionality
@@ -168,6 +169,7 @@ print(r.famaMacBethRegression12(sharedDates, sharedTics, db, crsp, compustat, t1
 end = time.time()
 print(end - start)
 """
+
 
 
 

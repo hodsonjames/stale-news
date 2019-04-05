@@ -2,6 +2,8 @@
 # -------
 # Unit and integration tests for databases.py, utils.py
 # When testing for TIMING of function implementations rerun test from beginning (to disentangle caching influence)
+# Some test comparison results used to use allFirmsReturnGlobal for value-weighted return
+# Actual != Expected for functions that use the new allFirmsReturn, MANY UNIT TESTS DEPRECATED
 import databases as d
 import utils as u
 import utilsp as up
@@ -189,22 +191,60 @@ print("Expected -1 Actual: " + str(u.firmReturn(firm4, date4, crsp)))
 """
 
 """
+Test: allFirmsReturnGlobal functionality
+verbose = False
+date = "20000103"
+if verbose:
+    print(crsp.data.query('date == "' + date + '"'))
+print("Expected: -0.006817 Actual: " + str(u.allFirmsReturnGlobal(date, crsp)))
+date2 = "20000118"
+if verbose:
+    print(crsp.data.query('date == "' + date2 + '"'))
+print("Expected: -0.000874 Actual: " + str(u.allFirmsReturnGlobal(date2, crsp)))
+date3 = "20181231"
+if verbose:
+    print(crsp.data.query('date == "' + date3 + '"'))
+print("Expected: 0.008107 Actual: " + str(u.allFirmsReturnGlobal(date3, crsp)))
+date4 = "19991220"
+print("Expected: -1 Actual: " + str(u.allFirmsReturnGlobal(date4, crsp)))
+"""
+
+"""
 Test: allFirmsReturn functionality
 verbose = False
 date = "20000103"
 if verbose:
     print(crsp.data.query('date == "' + date + '"'))
-print("Expected: -0.006817 Actual: " + str(u.allFirmsReturn(date, crsp)))
+print("Output: " + str(u.allFirmsReturn(date, crsp)))
 date2 = "20000118"
 if verbose:
     print(crsp.data.query('date == "' + date2 + '"'))
-print("Expected: -0.000874 Actual: " + str(u.allFirmsReturn(date2, crsp)))
+print("Output: " + str(u.allFirmsReturn(date2, crsp)))
 date3 = "20181231"
 if verbose:
     print(crsp.data.query('date == "' + date3 + '"'))
-print("Expected: 0.008107 Actual: " + str(u.allFirmsReturn(date3, crsp)))
+print("Output: " + str(u.allFirmsReturn(date3, crsp)))
 date4 = "19991220"
 print("Expected: -1 Actual: " + str(u.allFirmsReturn(date4, crsp)))
+"""
+
+"""
+Test: allFirmsReturnGlobal functionality
+verbose = False
+date = "20000103"
+if verbose:
+    print(crsp.data.query('date == "' + date + '"'))
+print("Expected: -0.006817 Actual: " + str(u.allFirmsReturnGlobal(date, crsp)))
+date2 = "20000118"
+if verbose:
+    print(crsp.data.query('date == "' + date2 + '"'))
+print("Expected: -0.000874 Actual: " + str(u.allFirmsReturnGlobal(date2, crsp)))
+date3 = "20181231"
+if verbose:
+    print(crsp.data.query('date == "' + date3 + '"'))
+print("Expected: 0.008107 Actual: " + str(u.allFirmsReturnGlobal(date3, crsp)))
+date4 = "19991220"
+print("Expected: -1 Actual: " + str(u.allFirmsReturnGlobal(date4, crsp)))
 """
 
 """
@@ -504,10 +544,15 @@ print("Expected: 0.07772559827 Actual: " + str(u.bookToMarketCap(firm, date, crs
 
 """
 Test: generateXList functionality
+"""
 # first computation will always be slow
 firm = "AAPL"
 date = "20150721"
 start = time.time()
+print("|AbnRet|: " + str(abs(u.abnormalReturnDate(firm, "20150722", crsp, False))))
+print("AbnVol: " + str(u.abnormalVolDate(firm, "20150722", crsp, False)))
+print("AbnPctOld: " + str(u.abnormalPercentageOld(firm, "20150721", db)))
+print("AbnPrcRecombinations: " + str(u.abnormalPercentageRecombinations(firm, "20150721", db)))
 print("Output: " + str(u.generateXList(firm, date, db, crsp, compustat)))
 end = time.time()
 print("Time elapsed first: " + str(end - start))
@@ -515,6 +560,10 @@ print("Time elapsed first: " + str(end - start))
 firm = "MSFT"
 date = "20150721"
 start = time.time()
+print("|AbnRet|: " + str(abs(u.abnormalReturnDate(firm, "20150722", crsp, False))))
+print("AbnVol: " + str(u.abnormalVolDate(firm, "20150722", crsp, False)))
+print("AbnPctOld: " + str(u.abnormalPercentageOld(firm, "20150721", db)))
+print("AbnPrcRecombinations: " + str(u.abnormalPercentageRecombinations(firm, "20150721", db)))
 print("Output: " + str(u.generateXList(firm, date, db, crsp, compustat)))
 end = time.time()
 print("Time elapsed same: " + str(end - start))
@@ -522,13 +571,20 @@ print("Time elapsed same: " + str(end - start))
 firm = "QCOM"
 date = "20150722"
 start = time.time()
+print("|AbnRet|: " + str(abs(u.abnormalReturnDate(firm, "20150723", crsp, False))))
+print("AbnVol: " + str(u.abnormalVolDate(firm, "20150723", crsp, False)))
+print("AbnPctOld: " + str(u.abnormalPercentageOld(firm, "20150722", db)))
+print("AbnPrcRecombinations: " + str(u.abnormalPercentageRecombinations(firm, "20150722", db)))
 print("Output: " + str(u.generateXList(firm, date, db, crsp, compustat)))
 end = time.time()
 print("Time elapsed next: " + str(end - start))
 # all subsequent computations on the same day are extremely fast
 firm = "BA"
 date = "20150722"
+print("|AbnRet|: " + str(abs(u.abnormalReturnDate(firm, "20150723", crsp, False))))
+print("AbnVol: " + str(u.abnormalVolDate(firm, "20150723", crsp, False)))
+print("AbnPctOld: " + str(u.abnormalPercentageOld(firm, "20150722", db)))
+print("AbnPrcRecombinations: " + str(u.abnormalPercentageRecombinations(firm, "20150722", db)))
 print("Output: " + str(u.generateXList(firm, date, db, crsp, compustat)))
-"""
 
 

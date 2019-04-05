@@ -54,6 +54,7 @@ class CRSPDatabase(PandasDatabase):
         self.abnret: mapping (ticker, date) to abnormal return for firm on date
         self.vol: mapping (ticker, date) to volume for firm on date
         self.firmfrac: mapping (ticker, date) to fraction of shares turned over for firm on date
+        self.vwret: mapping date to value-weighted average return for all firms on date
         self.vwfrac: mapping date to value-weighted average fraction of shares turnover for all firms on date
         self.abnvol: mapping (ticker, date) to firmfrac[(ticker, date)] - vwfrac[date]
         self.mcap: mapping (ticker, date) to market cap for firm on that day
@@ -65,6 +66,7 @@ class CRSPDatabase(PandasDatabase):
         self.abnret = {}
         self.vol = {}
         self.firmfrac = {}
+        self.vwret = {}
         self.vwfrac = {}
         self.abnvol = {}
         self.mcap = {}
