@@ -140,14 +140,6 @@ print("Time elapsed: " + str(end - start))
 """
 Test: abnormalPercentageOld functionality
 tickers = list(db.tics.keys())
-for t in tickers:
-    if (t, "20150421") in db.tdMap:
-        print(t + " AbnPctOld: " + str(u.abnormalPercentageOld(t, "20150421", db)) + "  PctOld: " + str(u.percentageOld(t, "20150421", db)))
-"""
-
-"""
-Test: abnormalPercentageOld functionality
-tickers = list(db.tics.keys())
 start = time.time()
 for t in tickers:
     if (t, "20150421") in db.tdMap:

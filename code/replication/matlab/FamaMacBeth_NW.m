@@ -7,7 +7,7 @@ function out = FamaMacBeth_NW(y, X, PART_VAR, beta, varargin)
 %   y: vector of dependent variable
 %   X: matrix of regressors
 %   PART_VAR: vector containing variable by which regressions are 
-%     partitioned  (e.g. MONTH, using the Fama-MacBeth approach fon 
+%     partitioned  (e.g. MONTH, using the Fama-MacBeth approach on 
 %     a data set in which MONTH uniquely identifies a month)
 %   BETA: The vector of coefficients under the null hypothesis.
 %   LAG_LENGTH: The number of lags to be considered in the Newey-West 
@@ -46,10 +46,7 @@ function out = FamaMacBeth_NW(y, X, PART_VAR, beta, varargin)
     X2 = X(find(PART_VAR==PART(t)),:);
     
     % Store estimated coefficient, SEs, t-statistics, and df
-    regresult = regress(y2,X2,0);
-    temp(:,t,1) = regresult;
-    temp(:,t,2) = regresult;
-    temp(:,t,3) = regresult;
+    temp(:,t,1:3) = regress(y2,X2,0);
     temp(:,t,4) = size(X2,1)-size(X2,2);
     
     % Store estimated coefficients for t in BB vector
