@@ -253,8 +253,8 @@ def procedure(startlocation = 'data', endlocation='export_dataframe.csv', simtes
                 if (story.tickers == []):
                     continue;
                 for ticker in story.tickers:
-                	if '.' in ticker:
-                		continue
+                    if '.' in ticker:
+                        continue
                     if ticker not in companies:
                         companies[ticker] = myLinkedList()
                     p = staleNewsProcedure(ticker, story, companies, simtest)
