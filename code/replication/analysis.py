@@ -22,7 +22,7 @@ OLD_THRESHOLD = 0.6
 REPRINT_RECOMBINATION_THRESHOLD = 0.8
 
 daily_mcap = lambda row: row["price"] * row["outstanding"]
-daily_turnover = lambda row: row["volume"] / row["outstanding"]
+daily_turnover = lambda row: row["volume"] / (row["outstanding"] * 1000)
 
 simulated_oldnews = lambda row: row["Old"] > OLD_THRESHOLD
 simulated_span = lambda row: row["ClosestNeighbor"] / row["Old"]
@@ -43,7 +43,7 @@ print("\tRemoved rows with weird RETX values. " + str(len(data_daily.values)) + 
 data_daily["RETX"] = data_daily["RETX"].astype("float64")
 # Filter and add factors
 data_daily = data_daily.drop(["PERMNO"], axis=1)
-data_daily = data_daily.rename(index=str, columns={"TICKER":"ticker", "PRC":"price", "VOL":"volume", "SHROUT":"outstanding", "RETX":"return"})
+data_daily = data_daily.rename(index=str, columns={"TICKER":"ticker", "OPENPRC":"price", "VOL":"volume", "SHROUT":"outstanding", "RETX":"return"})
 data_daily["mcap"] = data_daily.apply(daily_mcap, axis=1)
 data_daily["turnover"] = data_daily.apply(daily_turnover, axis=1)
 # data_daily = data_daily.set_index(['ticker', 'date'])
@@ -55,8 +55,10 @@ data_quarterly = pd.read_csv("../data/data_quarterly.csv").dropna() # drop rows 
 print("Read " + str(len(data_quarterly.values)) + " non-empty rows from quarterly data.")
 # alternatively, forward-fill
 # Filter and add factors
-data_quarterly = data_quarterly.drop(["gvkey", "fqtr", "qtryr", "datadate"], axis=1)
-data_quarterly = data_quarterly.rename(index=str, columns={"tic":"ticker", "rdq":"date", "atqr":"assets"})
+# data_quarterly = data_quarterly.drop(["gvkey", "fqtr", "qtryr", "datadate"], axis=1)
+# data_quarterly = data_quarterly.rename(index=str, columns={"tic":"ticker", "rdq":"date", "atqr":"assets"})
+data_quarterly = data_quarterly.drop(["gvkey", "fqtr", "qtryr", "rdq"], axis=1)
+data_quarterly = data_quarterly.rename(index=str, columns={"tic":"ticker", "datadate":"date", "atqr":"assets"})
 data_quarterly["date"] = data_quarterly["date"].astype("int64")
 # data_quarterly = data_quarterly.set_index(['ticker'])
 data_quarterly = data_quarterly.sort_values("date", ascending=False)
@@ -141,6 +143,15 @@ def date_shift(date, shift):
     assert date in daily_dates
     return daily_dates[daily_dates.index(date)+shift]
 
+def query(db, q, val):
+    result = db.query(q)
+    if len(result) == 0:
+        return NO_RESULT
+    return result[val].values[0]
+
+NO_RESULT = 0 #np.nan
+DEBUG = True
+
 time_start = time.time()
 
 # DAILY & DAY CALCULATIONS
@@ -172,8 +183,31 @@ def daily_abnvol(row):
     if (row["date"] == daily_dates[0]):
         return 0
     return row["return"] - data_day.filter(items=[row["date"]], axis=0)["ValueWeightedTurnover"].values[0]
+def daily_volatility(row):
+    abnReturns = []
+    for i in range(-20, 1):
+        abnReturns.append(query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)), "AbnRet"))
+    return np.std(abnReturns)
 data_daily["AbnRet"] = data_daily.apply(daily_abnret, axis=1)
 data_daily["AbnVol"] = data_daily.apply(daily_abnvol, axis=1)
+# print("Calculated Abnormal, elapsed " + str(time.time() - time_start))
+# data_daily["Volatility"] = data_daily.apply(daily_volatility, axis=1)
+def volatility(ticker, date):
+    abnReturns = []
+    for i in range(-20, 1):
+        abnReturns.append(query(data_daily, "ticker == '" + ticker + "' & date == " + str(date_shift(date, i)), "AbnRet"))
+    return np.std(abnReturns)
+def abnVolatility(ticker, date):
+    pastWeek = 0
+    print("AbnVolatility")
+    ori = volatility(ticker, date)
+    print("\tVolatility", ori)
+    for i in range(-5, 0):
+        val = volatility(ticker, date_shift(date, i))
+        pastWeek += val
+        print("\tVolatility[t" + str(i) + "]", date_shift(date, i), val)
+    print("\tDifference", ori - pastWeek / 5)
+    return ori - pastWeek / 5
 
 time_end = time.time()
 print("Calculated daily variables in " + str(round(time_end - time_start, 2)) + " seconds.")
@@ -194,14 +228,6 @@ data_vector = pd.read_csv("../data/output_firms.csv")
 data_vector = data_vector[data_vector.date.isin(daily_dates)]
 data_vector.set_index(["ticker", "date"])
 # data_vector = data_firms.query()
-
-NO_RESULT = 0 #np.nan
-
-def query(db, q, val):
-    result = db.query(q)
-    if len(result) == 0:
-        return NO_RESULT
-    return result[val].values[0]
 
 def vector_abnret(row):
     return query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(row["date"]), "AbnRet")
@@ -236,6 +262,8 @@ def helper_stories(firm, date):
     return q["count"].values[0]
     """
 
+# throw out zeroes
+
 def vector_abnstories(row):
     storiesPastWeek, storiesPast3Mo = 0, 0
     for i in range(-5, 0):
@@ -250,7 +278,10 @@ def vector_terms(row):
     return row["length"]
 
 def vector_mcap(row):
-    return query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(row["date"]), "mcap")
+    mcap = 1000 * query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(row["date"]), "mcap")
+    if mcap != 0:
+        mcap = np.log(mcap)
+    return mcap
     """
     q = data_daily.query("ticker == '" + row["ticker"] + "' & date == " + str(row["date"]))
     if len(q) == 0:
@@ -261,47 +292,85 @@ def vector_mcap(row):
 def vector_bm(row):
     q = data_quarterly.where(data_quarterly["ticker"] == row["ticker"]).where(data_quarterly["date"] < row["date"]).dropna()
     if len(q) == 0:
-        return np.nan
-    return q["assets"].values[0]
+        return NO_RESULT
+    mcap = 1000 * query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(row["date"]), "mcap")
+    if mcap == NO_RESULT:
+        return NO_RESULT
+    if DEBUG and row["ticker"] == "AAPL" and row["date"] == 20150721:
+        print("BM", q["assets"].values[0], mcap)
+    return q["assets"].values[0]/mcap
 
 def vector_abnretprev5(row):
     pastWeek = 0
+    if DEBUG and row["ticker"] == "AAPL" and row["date"] == 20150721:
+        print("AbnRet")
     for i in range(-5, 0):
-        pastWeek += query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)), "AbnRet")
+        val = query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)), "AbnRet")
+        pastWeek += val
+        ## DEBUG ## pastWeek += query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)), "AbnRet")
+        if DEBUG and row["ticker"] == "AAPL" and row["date"] == 20150721:
+            print("\tAbnRet[t" + str(i) + "]", date_shift(row["date"], i), val)
         # pastWeek += data_daily.query("ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)))["AbnRet"].values[0]
+    if DEBUG and row["ticker"] == "AAPL" and row["date"] == 20150721:
+        print("\tSum", pastWeek)
     return pastWeek
 
 def vector_abnvolprev5(row):
     pastWeek = 0
+    if DEBUG and row["ticker"] == "AAPL" and row["date"] == 20150721:
+        print("AbnVol")
     for i in range(-5, 0):
-        pastWeek += query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)), "AbnVol")
+        val = query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)), "AbnVol")
+        pastWeek += val
+        ## DEBUG ## pastWeek += query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)), "AbnVol")
+        if DEBUG and row["ticker"] == "AAPL" and row["date"] == 20150721:
+            print("\tAbnVol[t" + str(i) + "]", date_shift(row["date"], i), val)
         # pastWeek += data_daily.query("ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)))["AbnVol"].values[0]
+    if DEBUG and row["ticker"] == "AAPL" and row["date"] == 20150721:
+        print("\tAverage", pastWeek / 5)
     return pastWeek / 5
 
+"""
 def vector_volatility(row):
     abnReturns = []
     for i in range(-20, 1):
         abnReturns.append(query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)), "AbnRet"))
         # abnReturns.append(data_daily.query("ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)))["AbnRet"].values[0])
     return np.std(abnReturns)
+"""
 
 def vector_abnvolatility(row):
     pastWeek = 0
+    if DEBUG and row["ticker"] == "AAPL" and row["date"] == 20150721:
+        print("AbnVolatility")
+        print("\tVolatility", row["Volatility"])
     for i in range(-5, 0):
-        pastWeek += query(data_vector, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)), "Volatility")
+        val = query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)), "Volatility")
+        pastWeek += val
+        ## DEBUG ## pastWeek += query(data_daily, "ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)), "Volatility")
+        if DEBUG and row["ticker"] == "AAPL" and row["date"] == 20150721:
+            print("\tVolatility[t" + str(i) + "]", date_shift(row["date"], i), val)
         # pastWeek += data_vector.query("ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)))["Volatility"].values[0]
+    if DEBUG and row["ticker"] == "AAPL" and row["date"] == 20150721:
+        print("\tDifference", row["Volatility"] - pastWeek / 5)
     return row["Volatility"] - pastWeek / 5
 
 def vector_illiq(row):
     pastWeek = 0
+    if DEBUG and row["ticker"] == "AAPL" and row["date"] == 20150721:
+        print("Illiq")
     for i in range(-5, 0):
         it = data_daily.query("ticker == '" + row["ticker"] + "' & date == " + str(date_shift(row["date"], i)))
         if len(it) == 0:
             pastWeek += NO_RESULT
             continue
-        Ret = it["return"].values[0]
+        Ret = np.abs(it["return"].values[0])
         Vol = it["volume"].values[0] * it["price"].values[0]
+        if DEBUG and row["ticker"] == "AAPL" and row["date"] == 20150721:
+            print("\t[t" + str(i) + "]", date_shift(row["date"], i), Ret, Vol)
         pastWeek += 10**6 * np.abs(Ret) / Vol
+    if DEBUG and row["ticker"] == "AAPL" and row["date"] == 20150721:
+        print("\tAverage", pastWeek / 5)
     return pastWeek / 5
 
 data_vector["AbnRet"] = data_vector.apply(vector_abnret, axis=1)
@@ -314,8 +383,9 @@ data_vector["MCap"] = data_vector.apply(vector_mcap, axis=1)
 data_vector["BM"] = data_vector.apply(vector_bm, axis=1)
 data_vector["AbnRetPrev5"] = data_vector.apply(vector_abnretprev5, axis=1)
 data_vector["AbnVolPrev5"] = data_vector.apply(vector_abnvolprev5, axis=1)
-data_vector["Volatility"] = data_vector.apply(vector_volatility, axis=1)
-data_vector["AbnVolatility"] = data_vector.apply(vector_abnvolatility, axis=1)
+# data_vector["Volatility"] = data_vector.apply(vector_volatility, axis=1)
+# data_vector["AbnVolatility"] = data_vector.apply(vector_abnvolatility, axis=1)
+abnVolatility("AAPL", 20150721)
 data_vector["Illiq"] = data_vector.apply(vector_illiq, axis=1)
 
 time_end = time.time()
