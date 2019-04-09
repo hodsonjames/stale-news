@@ -225,7 +225,7 @@ class LLNode():
 def procedure(startlocation = 'data', endlocation='export_dataframe.csv', simtest=None, all=True, quiet=True, count=1000):
     '''Performs the procedure for the specified amount of articles. Uses all nml files from startlocation, and exports a csv file
     at endlocation.'''
-    location = sort(glob.glob(startlocation + '/*.nml'))
+    location = sorted(glob.glob(startlocation + '/*.nml'))
     if (all):
         count = -1
     if (simtest == None):
@@ -253,6 +253,8 @@ def procedure(startlocation = 'data', endlocation='export_dataframe.csv', simtes
                 if (story.tickers == []):
                     continue;
                 for ticker in story.tickers:
+                	if '.' in ticker:
+                		continue
                     if ticker not in companies:
                         companies[ticker] = myLinkedList()
                     p = staleNewsProcedure(ticker, story, companies, simtest)
@@ -262,4 +264,19 @@ def procedure(startlocation = 'data', endlocation='export_dataframe.csv', simtes
         print("Procedure finished.")
 
 if __name__ == '__main__':
-    procedure(sys.argv[1], sys.argv[2], sys.argv[3])
+    if len(sys.argv) == 4:
+        procedure(sys.argv[1], sys.argv[2], sys.argv[3])
+    elif len(sys.argv) == 3:
+        procedure(sys.argv[1], sys.argv[2], None)
+    else:
+        sys.exit(1)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
