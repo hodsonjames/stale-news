@@ -544,7 +544,6 @@ print("Expected: 0.07772559827 Actual: " + str(u.bookToMarketCap(firm, date, crs
 
 """
 Test: generateXList functionality
-"""
 # first computation will always be slow
 firm = "AAPL"
 date = "20150721"
@@ -586,5 +585,5 @@ print("AbnVol: " + str(u.abnormalVolDate(firm, "20150723", crsp, False)))
 print("AbnPctOld: " + str(u.abnormalPercentageOld(firm, "20150722", db)))
 print("AbnPrcRecombinations: " + str(u.abnormalPercentageRecombinations(firm, "20150722", db)))
 print("Output: " + str(u.generateXList(firm, date, db, crsp, compustat)))
-
+"""
 
