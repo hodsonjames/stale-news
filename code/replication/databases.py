@@ -17,12 +17,14 @@ class PandasDatabase:
         datatype is an optional dictionary mapping column name to pandas type
         1. self.tics: list of contained tickers (initially empty)
         2. self.dates: list of contained dates (initially empty), dates are INTEGERS
+        3. self.allowed_tics: list of shared tickers between this database and any others in use
         """
         self.data = pd.read_csv(file, dtype=datatype, low_memory=False)
         # Drop incomplete rows
         self.data.dropna(inplace=True)
         self.tics = []
         self.dates = []
+        self.allowed_tics = []
 
     def recordTickers(self, colName, printWarnings=True):
         """
@@ -42,6 +44,25 @@ class PandasDatabase:
         self.dates.sort()
         if printWarnings:
             print("DATABASE DATES SETUP DONE")
+
+    def setAllowedTics(self, allowed):
+        """
+        Takes in allowed tickers and saves it
+        """
+        self.allowed_tics = allowed
+
+    def enforceAllowedTics(self, tickers):
+        """
+        Takes in a list of tickers and returns a new list where any tickers that aren't in self.allowed_tics are removed
+        """
+        if not self.allowed_tics:
+            return tickers
+        else:
+            permitted = []
+            for t in tickers:
+                if t in self.allowed_tics:
+                    permitted.append(t)
+            return permitted
 
 
 class CRSPDatabase(PandasDatabase):

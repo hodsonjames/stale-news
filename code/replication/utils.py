@@ -453,6 +453,7 @@ def totalMarketCap(date, pdatabase, printWarnings=True):
             print("NO MARKET DATA: " + date)
         return -1, []
     tics = ticsQuery["TICKER"].unique().tolist()
+    tics = pdatabase.enforceAllowedTics(tics)
     for tic in tics:
         totalMarketCaps += marketCap(tic, date, pdatabase, False)
     pdatabase.totmcap[date] = (totalMarketCaps, tics)

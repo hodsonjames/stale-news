@@ -14,6 +14,11 @@ compustat = d.PandasDatabase("compustatQ.csv")
 crsp = d.CRSPDatabase("crspdaystock.csv")
 crspmini = d.CRSPDatabase("crspdaystockmini.csv")
 db = d.MeasuresDatabase("simulated_data.txt")
+# Find shared firms between databases
+compustat.recordTickers("tic", False)
+crsp.recordTickers("TICKER", False)
+sharedTics = list(set(compustat.tics) & set(crsp.tics) & set(db.tics.keys()))
+crsp.setAllowedTics(sharedTics)
 print("SETUP DONE")
 
 """
