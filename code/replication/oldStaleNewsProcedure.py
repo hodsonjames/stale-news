@@ -20,10 +20,7 @@ import heapq
 import numpy as np
 import csv
 import sys
-import os
-import time
-from functionTimer import *
-ft = FunctionTimer()
+
 import glob
 fs = glob.glob('data/*.nml')
 
@@ -32,8 +29,6 @@ fs = glob.glob('data/*.nml')
 eastern = timezone('US/Eastern')
 stop_words = set(stopwords.words('english')) 
 stemmer = PorterStemmer()
-stemDict = dict() # dict from stem to index, for faster set comparisons
-wordDict = dict() # dict from word to stem
 
 #Key functions
 def xmlTreeGetter(filename="2001_sample_10M.nml"):
@@ -50,14 +45,12 @@ def xmlTreeGetter(filename="2001_sample_10M.nml"):
 #getters for article with a given etree
 def article(etree):
     '''Given etree, return article'''
-    ft.begin("article")
     art = etree.find("djnml").find("body").find("text")
     if art is None:
         return ""
     article = ""
     for element in art: #likely slow, fix later
         article += element.text
-    ft.end("article")
     return article
 
 def headline(etree):
@@ -66,20 +59,17 @@ def headline(etree):
 
 def tickercreator(etree):
     '''Given etree, return ticker list'''
-    ft.begin("tickercreator")
     tik = etree.find("djnml").find("head").find("docdata").find("djn").find("djn-newswires").find("djn-mdata").find("djn-coding").find("djn-company")
     tickers = []
     if tik is None:
         return tickers
     for i in range(len(tik)):
         tickers += [tik[i].text]
-    ft.end("tickercreator")
     return tickers
 
 def accessionNum(etree):
     '''Given etree, return acession number'''
-    return etree.attrib['md5']
-    #return etree.find("djnml").find("head").find("docdata").find("djn").find("djn-newswires").find("djn-mdata").attrib['accession-number']
+    return etree.find("djnml").find("head").find("docdata").find("djn").find("djn-newswires").find("djn-mdata").attrib['accession-number']
 
 def displayDate(etree):
     '''Given etree, reutrn display date'''
@@ -87,52 +77,29 @@ def displayDate(etree):
 
 def stem(tokenizedWords):
     """Returns a list of stemmed words."""
-    ft.begin("stem")
-    #r = [stemmer.stem(word) for word in tokenizedWords]
-    r = []
-    for word in tokenizedWords:
-        if word in wordDict:
-            add = stemDict[wordDict[word]]
-        else:
-            w = stemmer.stem(word)
-            add = stemDict.get(w)
-            if (add == None):
-                add = len(stemDict)
-                stemDict[w] = add
-            wordDict[word] = w
-        r += [add]
-    ft.end("stem")
-    return r
+    return [stemmer.stem(word) for word in tokenizedWords]
 
 def stop(tokenizedWords):
     """Returns a list of with stop words removed."""
-    ft.begin("stop")
     filtered_sentence = set() 
     for w in tokenizedWords: 
         if w not in stop_words: 
             filtered_sentence.add(w) 
-    ft.end("stop")
     return list(filtered_sentence)
 
 def intersection(lst1, lst2): 
     """returns the intersection between two lists"""
-    ft.begin("intersection")
     if (lst1 == None or lst2 == None):
         return []
     lst3 = [value for value in lst1 if value in lst2] 
-    ft.end("intersection")
     return lst3 
 
 def similaritytest(orig, B):
     """returns a similarity score between stemmed article orig and a stemmed article (text)"""
-    ft.begin("similaritytest")
-    r = len(intersection(orig.textWords, B.textWords)) / len(orig.textWords)
-    ft.end("similaritytest")
-    return r
+    return len(intersection(orig.textWords, B.textWords)) / len(orig.textWords)
 
 def stale(origStory, neighborStories, simtest):
     '''Determines the staleness of news given origStory and neighborStories. '''
-    ft.begin("stale")
     if (len(neighborStories) == 0):
         return [False, False, False, 0]
     origWords = set(origStory.text)
@@ -155,19 +122,17 @@ def stale(origStory, neighborStories, simtest):
         else:
             #print("recombination.")
             r[2] = True
-    ft.end("stale")
     return r
 
 def staleNewsProcedure(ticker, story, companies, simtest):
     '''Performs the stalen news procedure for one article. Returns the similarity information for this
     article compared to the articles up to 72 hours prior. '''
-    ft.begin("staleNewsProcedure")
     companyLL = companies[ticker]
     companyLL.resetCurr()
     compStory = companyLL.nextNode()
     maxpq = []
     while (compStory != None):
-        if story.displayDate - compStory.displayDate > 259200:
+        if story.displayDate - compStory.displayDate > datetime.timedelta(days=3):
             companyLL.cut();
             break;
         sim = simtest(story, compStory)
@@ -184,13 +149,7 @@ def staleNewsProcedure(ticker, story, companies, simtest):
     else:
         largestacc = None
         largestsim = None
-
-    if (len(largestFive) > 1):
-        secondlargestacc = largestFive[1][1].accessionNumber
-    else:
-        secondlargestacc = None
-    ft.end("staleNewsProcedure")
-    return [story.displayDate, story.accessionNumber, ticker, len(story.textWords), largestacc, secondlargestacc, largestsim, old_reprint_recomb[3], old_reprint_recomb[0], old_reprint_recomb[1], old_reprint_recomb[2]]
+    return [story.displayDate, story.accessionNumber, ticker, largestacc, largestsim, old_reprint_recomb[3], old_reprint_recomb[0], old_reprint_recomb[1], old_reprint_recomb[2]]
 
 #Key classes
 
@@ -204,18 +163,16 @@ class Story:
     textWords = []
     sim = -1
     def __init__(self, et=None, neighbor=None):
-        ft.begin("storyinit")
         if (neighbor != None):
             self.text = neighbor
             self.textWords = stop(stem(word_tokenize(neighbor)))
         else:
             self.accessionNumber = accessionNum(et)
-            self.displayDate = dateutil.parser.parse(displayDate(et)).timestamp()
+            self.displayDate = dateutil.parser.parse(displayDate(et)).astimezone(tz=eastern)
             self.tickers = tickercreator(et)
             self.text = article(et)
             self.textWords = stop(stem(word_tokenize(article(et))))
             self.headline = headline(et)
-        ft.end("storyinit")
 
     def from_other(self, number, date, tick, txt, s):
         self.acessionNumber = number
@@ -268,8 +225,7 @@ class LLNode():
 def procedure(startlocation = 'data', endlocation='export_dataframe.csv', simtest=None, all=True, quiet=True, count=1000):
     '''Performs the procedure for the specified amount of articles. Uses all nml files from startlocation, and exports a csv file
     at endlocation.'''
-    ft.begin("procedure")
-    location = sorted(glob.glob(startlocation + '/*.nml'))
+    location = sort(glob.glob(startlocation + '/*.nml'))
     if (all):
         count = -1
     if (simtest == None):
@@ -278,7 +234,7 @@ def procedure(startlocation = 'data', endlocation='export_dataframe.csv', simtes
     mydata = []
     with open(endlocation, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
-        writer.writerow(['DATE_EST', 'STORY_ID', 'TICKER', 'STORY_LENGTH', 'CLOSEST_ID', 'SECOND_CLOSEST_ID', 'CLOSEST_SCORE', 'TOTAL_OVERLAP', 'IS_OLD', 'IS_REPRINT', 'IS_RECOMB'])
+        writer.writerow(['DATE_EST', 'STORY_ID', 'TICKER', 'CLOSEST_ID', 'CLOSEST_SCORE', 'TOTAL_OVERLAP', 'IS_OLD', 'IS_REPRINT', 'IS_RECOMB'])
         for f in location:
             if (not quiet):
                 print("File processing...",f)
@@ -304,10 +260,6 @@ def procedure(startlocation = 'data', endlocation='export_dataframe.csv', simtes
                 c = c + 1
     if (not quiet):
         print("Procedure finished.")
-    ft.end("procedure")
-    print("Procedure Time: ", ft.info["procedure"])
-    ft.revealInfo("infomod.csv")
-    ft.clear()
 
 if __name__ == '__main__':
     procedure(sys.argv[1], sys.argv[2], sys.argv[3])
