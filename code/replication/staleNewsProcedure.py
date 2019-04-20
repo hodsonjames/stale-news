@@ -312,4 +312,19 @@ def procedure(startlocation = 'data', endlocation='export_dataframe.csv', simtes
     #ft.clear()
 
 if __name__ == '__main__':
-    procedure(sys.argv[1], sys.argv[2], sys.argv[3])
+    if len(sys.argv) == 4:
+        procedure(sys.argv[1], sys.argv[2], sys.argv[3])
+    elif len(sys.argv) == 3:
+        procedure(sys.argv[1], sys.argv[2], None)
+    else:
+        sys.exit(1)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
