@@ -7,27 +7,30 @@ from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
-from sklearn.feature_extraction.text import TfidfVectorizer
-
 stop_words = set(stopwords.words('english'))
 ps = PorterStemmer()
-vec = TfidfVectorizer()
 
-class CosineSimilarity:
+# Locality-Sensitive Hashing
+class LSHSimilarity:
 
     def __init__(self, measure_const = MeasureConstants()):
         self.measure_const = measure_const
 
-
+    def k_shingling(self, text, k=10):
+        shingles = set()
+        for char in text[:-k]:
+            shingles.add(text[char:char+k])
+        return shingles
+        
     def stem_and_filter(self, text):
         """
         Takes an article's text and tokenizes the article text into a set, then
         removes stop words from the set and stems all the remaining words. Returns
         a set of stemmed words in the article.
         """
-        tokenized = text.split()
-        tokenized = [w for w in tokenized if w not in stop_words] # Remove stop words from tokenized text
-        stemmed = " ".join([ps.stem(w) for w in tokenized])
+        tokenized = set(text.split())
+        tokenized.difference_update(stop_words) # Remove stop words from tokenized text
+        stemmed = {ps.stem(w) for w in tokenized}
         return stemmed
 
     def bow_similarity_score(self, s1, s2):

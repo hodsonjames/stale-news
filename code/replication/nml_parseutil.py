@@ -1,3 +1,6 @@
+from timeit import default_timer as timer
+start = timer()
+
 import datetime
 import xml.etree.ElementTree as ET
 from dateutil import parser
@@ -13,8 +16,9 @@ sys.path.append("../measures")
 from measure_constants import MeasureConstants
 from article import Article
 from bow_similarity import BOWSimilarity
+from cosine_similarity import CosineSimilarity
 
-sim = BOWSimilarity()
+sim = CosineSimilarity()
 
 def filter_old_articles(company_article_map, curr_article, k_hours=sim.measure_const.NUM_HOURS):
     """
@@ -74,7 +78,7 @@ def create_article_map(directory_path, output_csv_name, k_hours=sim.measure_cons
     company_article_map = {}
     curr_file_str = ""
     header_df = pd.DataFrame(columns=["company", "headline", "time", 
-                                     "old_score", "is_reprint", "is_recombination"])
+                                     "old_score", "closest_neighbor", "is_reprint", "is_recombination"])
     header_df.to_csv(output_csv_name, index = False)
 
     f = open(output_csv_name, "a")
@@ -102,35 +106,36 @@ def create_article_map(directory_path, output_csv_name, k_hours=sim.measure_cons
                     if company is None:
                         curr_file_str = ""
                         continue
-                    if company[0].attrib.get('about', False) != 'Y':
-                        curr_file_str = ""
-                        continue
-                    company = company[0].text
                     timestamp = xml_elem.find(".//djn-mdata").attrib['display-date']
                     headline = xml_elem.find(".//headline").text.lstrip()
                     all_text = xml_elem.find(".//text")
                     article_text = "".join(all_text.itertext())
                     text_stemmed_filtered = sim.stem_and_filter(article_text)
+                    for c in company:
+                        if c.attrib.get('about', False) != 'Y':
+                            curr_file_str = ""
+                            continue
+                        company = c.text
 
-                    new_article = Article(company, timestamp, headline, text_stemmed_filtered)
-                    company_articles = filter_old_articles(company_article_map, new_article, k_hours)
-                    
-                    if len(company_articles) == 0:
-                        company_articles.add(new_article)
-                        company_article_map[company] = company_articles
-                        curr_file_str = ""
-                        continue
-                    else:
-                        old, closest_neighbor = sim.compute_sim_measure(new_article, company_articles)
-                        new_row = [new_article.company, new_article.headline, new_article.timestamp,
-                                  old, sim.is_reprint(old, closest_neighbor),
-                                  sim.is_recombination(old, closest_neighbor)]
-                        csv_writer.writerow(new_row)
-
-                        company_articles.add(new_article)
-                        company_article_map[company] = company_articles
+                        new_article = Article(company, timestamp, headline, text_stemmed_filtered)
+                        company_articles = filter_old_articles(company_article_map, new_article, k_hours)
                         
-                    curr_file_str = ""
+                        if len(company_articles) == 0:
+                            company_articles.add(new_article)
+                            company_article_map[company] = company_articles
+                            curr_file_str = ""
+                            continue
+                        else:
+                            old, closest_neighbor = sim.compute_sim_measure(new_article, company_articles)
+                            new_row = [new_article.company, new_article.headline, new_article.timestamp,
+                                      old, closest_neighbor, sim.is_reprint(old, closest_neighbor),
+                                      sim.is_recombination(old, closest_neighbor)]
+                            csv_writer.writerow(new_row)
+
+                            company_articles.add(new_article)
+                            company_article_map[company] = company_articles
+                            
+                        curr_file_str = ""
     
     f.close()
     return company_article_map
@@ -146,3 +151,6 @@ if len(sys.argv) < 1:
 args = arg_parser.parse_args()
 article_map = create_article_map(args.dir_path, args.csv_name)
 print("Parsing done!")
+
+end = timer()
+print(end - start)
