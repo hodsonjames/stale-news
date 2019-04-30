@@ -69,9 +69,13 @@ class BOWSimilarity:
         return old > self.measure_const.OLD_NEWS
 
     def is_reprint(self, old, closest_neighbor):
+        if old == 0:
+            return False
         reprint = (closest_neighbor / old) >= self.measure_const.CLOSEST_NEIGHBOR_SHARE
         return (old > self.measure_const.OLD_NEWS) * reprint
 
     def is_recombination(self, old, closest_neighbor):
+        if old == 0:
+            return False
         reprint = (closest_neighbor / old) < self.measure_const.CLOSEST_NEIGHBOR_SHARE
         return (old > self.measure_const.OLD_NEWS) * reprint

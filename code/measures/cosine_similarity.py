@@ -25,7 +25,7 @@ class CosineSimilarity:
         removes stop words from the set and stems all the remaining words. Returns
         a set of stemmed words in the article.
         """
-        tokenized = text.split()
+        tokenized = word_tokenize(text)
         tokenized = [w for w in tokenized if w not in stop_words] # Remove stop words from tokenized text
         stemmed = " ".join([ps.stem(w) for w in tokenized])
         return stemmed
@@ -83,9 +83,13 @@ class CosineSimilarity:
         return old > self.measure_const.OLD_NEWS
 
     def is_reprint(self, old, closest_neighbor):
+        if old == 0:
+            return False
         reprint = (closest_neighbor / old) >= self.measure_const.CLOSEST_NEIGHBOR_SHARE
         return (old > self.measure_const.OLD_NEWS) * reprint
 
     def is_recombination(self, old, closest_neighbor):
+        if old == 0:
+            return False
         reprint = (closest_neighbor / old) < self.measure_const.CLOSEST_NEIGHBOR_SHARE
         return (old > self.measure_const.OLD_NEWS) * reprint
