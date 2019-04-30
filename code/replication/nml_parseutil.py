@@ -77,7 +77,7 @@ def create_article_map(directory_path, output_csv_name, k_hours=sim.measure_cons
     """
     company_article_map = {}
     curr_file_str = ""
-    header_df = pd.DataFrame(columns=["company", "headline", "time", "id"
+    header_df = pd.DataFrame(columns=["company", "headline", "time", "id",
                                      "old_score", "closest_neighbor", "is_reprint", "is_recombination"])
     header_df.to_csv(output_csv_name, index = False)
 
