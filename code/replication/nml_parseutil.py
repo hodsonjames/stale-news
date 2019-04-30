@@ -77,8 +77,10 @@ def create_article_map(directory_path, output_csv_name, k_hours=sim.measure_cons
     """
     company_article_map = {}
     curr_file_str = ""
+
     header_df = pd.DataFrame(columns=["company", "headline", "time", "id",
-                                     "old_score", "closest_neighbor", "is_reprint", "is_recombination"])
+                                     "old_score", "closest_neighbor", "is_reprint", "is_recombination",
+                                     "num_characters"])
     header_df.to_csv(output_csv_name, index = False)
 
     f = open(output_csv_name, "a")
@@ -113,6 +115,8 @@ def create_article_map(directory_path, output_csv_name, k_hours=sim.measure_cons
                     all_text = xml_elem.find(".//text")
                     article_text = "".join(all_text.itertext())
                     text_stemmed_filtered = sim.stem_and_filter(article_text)
+                    num_characters = len(article_text)
+
                     for c in company:
                         if c.attrib.get('about', False) != 'Y':
                             curr_file_str = ""
@@ -131,7 +135,8 @@ def create_article_map(directory_path, output_csv_name, k_hours=sim.measure_cons
                             old, closest_neighbor = sim.compute_sim_measure(new_article, company_articles)
                             new_row = [new_article.company, new_article.headline, new_article.timestamp, md5_hash,
                                       old, closest_neighbor, sim.is_reprint(old, closest_neighbor),
-                                      sim.is_recombination(old, closest_neighbor)]
+                                      sim.is_recombination(old, closest_neighbor),
+                                      num_characters]
                             csv_writer.writerow(new_row)
 
                             company_articles.add(new_article)
