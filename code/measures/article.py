@@ -1,15 +1,18 @@
 import datetime
 from dateutil import parser
+import pytz
 
 class Article:
     
-    def __init__(self, company, timestamp, headline, article_text):
+    def __init__(self, company, timestamp, headline, article_text, md5_id):
         self.company = company
-        self.timestamp = parser.parse(timestamp)
+        est = pytz.timezone('US/Eastern')
+        self.timestamp = parser.parse(timestamp).replace(tzinfo=pytz.utc).astimezone(est)
         self.headline = headline
 
         # article_text should be stemmed and filtered articles
         self.article_text = article_text
+        self.md5_id = md5_id
     
     def __repr__(self):
         return self.company + "; " + str(self.timestamp) + "; " + self.headline
