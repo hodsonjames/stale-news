@@ -21,7 +21,7 @@ class BOWSimilarity:
         removes stop words from the set and stems all the remaining words. Returns
         a set of stemmed words in the article.
         """
-        tokenized = set(text.split())
+        tokenized = set(word_tokenize(text))
         tokenized.difference_update(stop_words) # Remove stop words from tokenized text
         stemmed = {ps.stem(w) for w in tokenized}
         return stemmed

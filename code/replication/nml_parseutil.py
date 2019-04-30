@@ -18,7 +18,7 @@ from article import Article
 from bow_similarity import BOWSimilarity
 from cosine_similarity import CosineSimilarity
 
-sim = CosineSimilarity()
+sim = BOWSimilarity()
 
 def filter_old_articles(company_article_map, curr_article, k_hours=sim.measure_const.NUM_HOURS):
     """
@@ -77,7 +77,7 @@ def create_article_map(directory_path, output_csv_name, k_hours=sim.measure_cons
     """
     company_article_map = {}
     curr_file_str = ""
-    header_df = pd.DataFrame(columns=["company", "headline", "time", 
+    header_df = pd.DataFrame(columns=["company", "headline", "time", "id"
                                      "old_score", "closest_neighbor", "is_reprint", "is_recombination"])
     header_df.to_csv(output_csv_name, index = False)
 
@@ -106,6 +106,8 @@ def create_article_map(directory_path, output_csv_name, k_hours=sim.measure_cons
                     if company is None:
                         curr_file_str = ""
                         continue
+
+                    md5_hash = xml_elem.attrib['md5']
                     timestamp = xml_elem.find(".//djn-mdata").attrib['display-date']
                     headline = xml_elem.find(".//headline").text.lstrip()
                     all_text = xml_elem.find(".//text")
@@ -117,7 +119,7 @@ def create_article_map(directory_path, output_csv_name, k_hours=sim.measure_cons
                             continue
                         company = c.text
 
-                        new_article = Article(company, timestamp, headline, text_stemmed_filtered)
+                        new_article = Article(company, timestamp, headline, text_stemmed_filtered, md5_hash)
                         company_articles = filter_old_articles(company_article_map, new_article, k_hours)
                         
                         if len(company_articles) == 0:
@@ -127,7 +129,7 @@ def create_article_map(directory_path, output_csv_name, k_hours=sim.measure_cons
                             continue
                         else:
                             old, closest_neighbor = sim.compute_sim_measure(new_article, company_articles)
-                            new_row = [new_article.company, new_article.headline, new_article.timestamp,
+                            new_row = [new_article.company, new_article.headline, new_article.timestamp, md5_hash
                                       old, closest_neighbor, sim.is_reprint(old, closest_neighbor),
                                       sim.is_recombination(old, closest_neighbor)]
                             csv_writer.writerow(new_row)
