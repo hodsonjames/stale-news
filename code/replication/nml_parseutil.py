@@ -129,7 +129,7 @@ def create_article_map(directory_path, output_csv_name, k_hours=sim.measure_cons
                             continue
                         else:
                             old, closest_neighbor = sim.compute_sim_measure(new_article, company_articles)
-                            new_row = [new_article.company, new_article.headline, new_article.timestamp, md5_hash
+                            new_row = [new_article.company, new_article.headline, new_article.timestamp, md5_hash,
                                       old, closest_neighbor, sim.is_reprint(old, closest_neighbor),
                                       sim.is_recombination(old, closest_neighbor)]
                             csv_writer.writerow(new_row)
