@@ -1,6 +1,6 @@
 # generate_reg_data.py
 # -------
-# Writes out file with data to run for equations (8), (9), (10), (11), (12), (13) from Section 3
+# Functions to write out file with data to run for equations (8), (9), (10), (11), (12), (13) from Section 3
 import utils as u
 import utilsp as up
 import databases as d

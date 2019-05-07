@@ -3,6 +3,7 @@
 # Database types and initialization
 from collections import OrderedDict
 import pandas as pd
+import datetime as dt
 
 
 class PandasDatabase:
@@ -174,6 +175,91 @@ class MeasuresDatabase(TextDatabase):
                 self.tdMap[(row[1], row[2])].append(row)
             else:
                 self.tdMap[(row[1], row[2])] = [row]
+        self.dates = OrderedDict(sorted(self.dates.items(), key=lambda t: t[0]))
+
+    def putAPOReg(self, date, ols):
+        """
+        puts date: ols entry in self.aporeg
+        """
+        self.aporeg[date] = ols
+
+    def removeAPOReg(self, date):
+        """
+        removes entry for date in self.aporeg
+        """
+        del self.aporeg[date]
+
+    def putAPRReg(self, date, ols):
+        """
+        puts date: ols entry in self.aprreg
+        """
+        self.aprreg[date] = ols
+
+    def removeAPRReg(self, date):
+        """
+        removes entry for date in self.aprreg
+        """
+        del self.aprreg[date]
+
+
+class AdjustableMeasuresDatabase(TextDatabase):
+    """
+    New measures database
+    Columns:
+    [0] Date Unix
+    [1] Story ID
+    [2] Stock ticker
+    [3] Length in number of unique terms
+    [4] ID closest neighbor story
+    [5] ID 2nd closest neighbor story
+    [6] ClosestNeighbor(s) in decimal
+    [7] Old(s) in decimal
+    [8] Old Status
+    [9] Reprint Status
+    [10] Recombination Status
+    """
+
+    def __init__(self, file):
+        """
+        Populates the measures database and creates:
+        1. self.dates: Ordered Dictionary of all dates where key = date, value = None, dates are STRINGS
+        2. self.tics: Dictionary of all tickers where key = ticker, value = None
+        3. self.tdMap: Dictionary mapping each (ticker, date) tuple to list of relevant news articles
+        4. self.aporeg: Empty dictionary for saving AbnPctOld regressions, maps date to regression
+        5. self.aprreg: Empty dictionary for saving AbnPctRecombination regressions, maps date to regression
+        6. self.pctold: Maps (ticker, date) to percentage old for firm on date
+        7. self.pctrec: Maps (ticker, date) to percentage recombinations for firm on date
+        8. self.stor: Maps (ticker, date) to count stories for firm on date
+        9. self.term: Maps (ticker, date) to average number of terms for firm on date
+        """
+        super().__init__(file)
+        self.dates = OrderedDict()
+        self.tics = {}
+        self.tdMap = {}
+        self.aporeg = {}
+        self.aprreg = {}
+        self.pctold = {}
+        self.pctrec = {}
+        self.stor = {}
+        self.term = {}
+
+        # Skip header row
+        skip = True
+        for row in self.database:
+            if skip:
+                skip = False
+                continue
+            if row[2] not in self.tics:
+                self.tics[row[2]] = None
+            # convert date
+            epoch = float(row[0])
+            date = str(dt.datetime.utcfromtimestamp(epoch).strftime("%Y%m%d"))
+            if date not in self.dates:
+                self.dates[date] = None
+            if (row[2], date) in self.tdMap:
+                self.tdMap[(row[2], date)].append(row)
+            else:
+                self.tdMap[(row[2], date)] = [row]
         self.dates = OrderedDict(sorted(self.dates.items(), key=lambda t: t[0]))
 
     def putAPOReg(self, date, ols):

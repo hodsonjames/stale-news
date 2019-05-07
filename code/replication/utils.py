@@ -4,6 +4,7 @@
 import pandas as pd
 import statsmodels.formula.api as sm
 import numpy as np
+import databases as d
 
 
 def percentageOld(firm, date, mdatabase, oldthreshold=0.6):
@@ -19,7 +20,13 @@ def percentageOld(firm, date, mdatabase, oldthreshold=0.6):
     matches = mdatabase.tdMap.get((firm, date), [])
     if len(matches) == 0:
         return -1
-    oldCount = len([row for row in matches if float(row[4]) >= oldthreshold])
+    # Different databases have different indexing
+    ind = -1
+    if isinstance(mdatabase, d.MeasuresDatabase):
+        ind = 4
+    elif isinstance(mdatabase, d.AdjustableMeasuresDatabase):
+        ind = 7
+    oldCount = len([row for row in matches if float(row[ind]) >= oldthreshold])
     pold = oldCount / len(matches)
     mdatabase.pctold[(firm, date)] = pold
     return pold
@@ -38,8 +45,17 @@ def percentageRecombinations(firm, date, mdatabase, oldthreshold=0.6, reprintthr
     matches = mdatabase.tdMap.get((firm, date), [])
     if len(matches) == 0:
         return -1
-    recomCount = len([row for row in matches if (float(row[4]) >= oldthreshold)
-                      and ((float(row[5]) / float(row[4])) < reprintthresh)])
+    # Different databases have different indexing
+    ind1 = -1
+    ind2 = -1
+    if isinstance(mdatabase, d.MeasuresDatabase):
+        ind1 = 4
+        ind2 = 5
+    elif isinstance(mdatabase, d.AdjustableMeasuresDatabase):
+        ind1 = 7
+        ind2 = 6
+    recomCount = len([row for row in matches if (float(row[ind1]) >= oldthreshold)
+                      and ((float(row[ind2]) / float(row[ind1])) < reprintthresh)])
     prec = recomCount / len(matches)
     mdatabase.pctrec[(firm, date)] = prec
     return prec
@@ -395,7 +411,13 @@ def terms(firm, date, mdatabase):
     matches = mdatabase.tdMap.get((firm, date), [])
     if len(matches) == 0:
         return -1
-    trms = sum([float(row[6]) for row in matches]) / len(matches)
+    # Different databases have different indexing
+    ind = -1
+    if isinstance(mdatabase, d.MeasuresDatabase):
+        ind = 6
+    elif isinstance(mdatabase, d.AdjustableMeasuresDatabase):
+        ind = 3
+    trms = sum([float(row[ind]) for row in matches]) / len(matches)
     mdatabase.term[(firm, date)] = trms
     return trms
 
