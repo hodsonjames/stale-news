@@ -10,6 +10,40 @@ from nltk.corpus import stopwords
 stop_words = set(stopwords.words('english'))
 ps = PorterStemmer()
 
+stemDict = dict() # dict from stem to index, for faster set comparisons
+wordDict = dict() # dict from word to stem
+
+def stem(tokenizedWords):
+    """
+    Returns a list of stemmed words.
+    """
+    #ft.begin("stem")
+    #r = [stemmer.stem(word) for word in tokenizedWords]
+    r = []
+    for word in tokenizedWords:
+        if word in wordDict:
+            add = stemDict[wordDict[word]]
+        else:
+            w = ps.stem(word)
+            add = stemDict.get(w)
+            if (add == None):
+                add = len(stemDict)
+                stemDict[w] = add
+            wordDict[word] = w
+        r += [add]
+    #ft.end("stem")
+    return r
+
+def stop(tokenizedWords):
+    """Returns a list of with stop words removed."""
+    #ft.begin("stop")
+    filtered_sentence = set() 
+    for w in tokenizedWords: 
+        if w not in stop_words: 
+            filtered_sentence.add(w) 
+    #ft.end("stop")
+    return list(filtered_sentence)
+
 class BOWSimilarity:
 
     def __init__(self, measure_const = MeasureConstants()):
@@ -21,10 +55,10 @@ class BOWSimilarity:
         removes stop words from the set and stems all the remaining words. Returns
         a set of stemmed words in the article.
         """
-        tokenized = set(word_tokenize(text))
-        tokenized.difference_update(stop_words) # Remove stop words from tokenized text
-        stemmed = {ps.stem(w) for w in tokenized}
-        return stemmed
+        tokenized = stop(stem(word_tokenize(text.lower())))
+        # stemmed = {ps.stem(w) for w in tokenized}
+        # stemmed.difference_update(stop_words) # Remove stop words from tokenized text
+        return set(tokenized)
 
     def bow_similarity_score(self, s1, s2):
         """
@@ -51,19 +85,20 @@ class BOWSimilarity:
         num_closest = self.measure_const.NUM_CLOSEST 
         
         curr_article_stemmed = curr_article.article_text
-        stemmed_articles = [s.article_text for s in article_set]
-        sim_scores = [self.bow_similarity_score(curr_article_stemmed, s) 
+        stemmed_articles = list(article_set)
+        sim_scores = [self.bow_similarity_score(curr_article_stemmed, s.article_text) 
                       for s in stemmed_articles]
         
         closest_articles_indices = np.argsort(sim_scores)[::-1][:num_closest]
         closest_articles = np.take(stemmed_articles, closest_articles_indices)
-        closest_articles_union = set().union(*closest_articles)
+        closest_articles_union = set().union(*[s.article_text for s in closest_articles])
         intersect_with_closest_n = curr_article_stemmed.intersection(closest_articles_union)
         
         old_score = len(intersect_with_closest_n) / len(curr_article_stemmed)
-        closest_neighbor_score = self.bow_similarity_score(curr_article_stemmed, closest_articles[0])
+        closest_neighbor_score = self.bow_similarity_score(curr_article_stemmed, closest_articles[0].article_text)
+        closest_neighbor_id = closest_articles[0].md5_id
         
-        return old_score, closest_neighbor_score
+        return old_score, closest_neighbor_score, closest_neighbor_id
 
     def is_old_news(self, old):
         return old > self.measure_const.OLD_NEWS
