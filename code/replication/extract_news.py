@@ -21,7 +21,7 @@ for tup in mdb.tdMap:
     line += "\n"
     f.write(line)
 
-
+f.close()
 
 
 
