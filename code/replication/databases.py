@@ -235,7 +235,7 @@ class AdjustableMeasuresDatabase(TextDatabase):
         super().__init__(file)
         self.dates = OrderedDict()
         self.tics = {}
-        self.tdMap = {}
+        self.tdMap = OrderedDict()
         self.aporeg = {}
         self.aprreg = {}
         self.pctold = {}
@@ -286,4 +286,245 @@ class AdjustableMeasuresDatabase(TextDatabase):
         """
         del self.aprreg[date]
 
+
+class BookDatabase:
+    """
+    Used for cleaned COMPUSTAT
+    """
+
+    def __init__(self, file):
+        """
+        Takes a file name and creates a BookDatabase for the corresponding file
+        self.data: maps ticker to list of its relevant data rows
+        """
+        self.data = {}
+        with open(file) as f:
+            skip = True
+            for line in f:
+                if skip:
+                    # skip header
+                    skip = False
+                    continue
+                # split line of: 0:gvkey,1:datadate,2:fyearq,3:fqtr,4:tic,5:ceqq
+                current = line.rstrip('\n').split(',')
+                if current[4] in self.data:
+                    self.data[current[4]].append(current)
+                else:
+                    self.data[current[4]] = [current]
+
+    def getBookValue(self, firm, date, bookUnit=1000000):
+        """
+        Firm's book value as of latest quarterly earnings report preceding date
+        Performs modified binary search, no integer cast needed as YYYYMMDD format can be sorted as strings
+        Returns -1 if no data available
+        Returns FLOAT
+        """
+        rows = self.data[firm]
+        low_ind = 0
+        low_date = rows[low_ind][1]
+        high_ind = len(rows) - 1
+        high_date = rows[high_ind][1]
+        unadjusted = -1
+        if date > high_date:
+            unadjusted = float(rows[high_ind][5])
+        elif date <= low_date:
+            # no data
+            return unadjusted
+        else:
+            mid_ind = (low_ind + high_ind) // 2
+            mid_date = rows[mid_ind][1]
+            while mid_ind != low_ind:
+                if mid_date <= date:
+                    low_ind = mid_ind
+                    low_date = mid_date
+                else:
+                    high_ind = mid_ind
+                mid_ind = (low_ind + high_ind) // 2
+                mid_date = rows[mid_ind][1]
+            if low_date == date:
+                unadjusted = float(rows[low_ind - 1][5])
+            else:
+                unadjusted = float(rows[low_ind][5])
+        return unadjusted * bookUnit
+
+
+class ProcessedNewsDatabase:
+    """
+    Used for extracted NEWS
+    """
+
+    def __init__(self, file):
+        """
+        Takes a file name and creates a BookDatabase for the corresponding file
+        self.data: maps each ticker to a dictionary mapping date to stories
+        self.dates: Ordered Dictionary of all dates where key = date, value = None, dates are STRINGS
+        """
+        self.data = {}
+        self.dates = OrderedDict()
+        with open(file) as f:
+            skip = True
+            for line in f:
+                if skip:
+                    # skip header
+                    skip = False
+                    continue
+                # split line of: 0:DATE,1:TICKER,2:STORIES,3:TERMS,4:ABN_PCT_OLD,5:ABN_PCT_REC
+                current = line.rstrip('\n').split(',')
+                if current[1] in self.data:
+                    self.data[current[1]][current[0]] = int(current[2])
+                else:
+                    self.data[current[1]] = OrderedDict()
+                    self.data[current[1]][current[0]] = int(current[2])
+                if current[0] not in self.dates:
+                    self.dates[current[0]] = None
+            self.dates = OrderedDict(sorted(self.dates.items(), key=lambda t: t[0]))
+
+    def abnormalStories(self, firm, date):
+        """
+        Difference between the average number of stories over [date-5, date-1] and
+        the average number of stories over [date-60, date-6] for firm
+        Return -1 if date not compatible
+        Returns FLOAT
+        """
+        dates = list(self.dates.keys())
+        if (date not in dates) or (dates.index(date) - 60) < 0:
+            return -1
+        dateLess60 = dates.index(date) - 60
+        stories5to1 = 0
+        stories60to6 = 0
+        for i in range(60):
+            if i < 55:
+                if dates[dateLess60 + i] not in self.data[firm]:
+                    continue
+                stories60to6 += self.data[firm][dates[dateLess60 + i]]
+            else:
+                if dates[dateLess60 + i] not in self.data[firm]:
+                    continue
+                stories5to1 += self.data[firm][dates[dateLess60 + i]]
+        return (stories5to1 / 5) - (stories60to6 / 55)
+
+
+class ProcessedMarketDatabase:
+    """
+    Used for merged COMPUSTAT and CRSP
+    """
+
+    def __init__(self, file):
+        """
+        Takes a file name and creates a ProcessedMarketDatabase for the corresponding file
+        self.abn_ret: maps each ticker to a dictionary mapping date to ABN_RET
+        self.abn_vol: maps each ticker to a dictionary mapping date to ABN_VOLUME
+        self.illiq: maps each ticker to a dictionary mapping date to ILLIQ
+        self.abn_volat: maps each ticker to a dictionary mapping date to ABN_VOLATILITY
+        self.dates: Ordered Dictionary of all dates where key = date, value = None, dates are STRINGS
+        """
+        self.abn_ret = {}
+        self.abn_vol = {}
+        self.illiq = {}
+        self.abn_volat = {}
+        self.dates = OrderedDict()
+        with open(file) as f:
+            skip = True
+            for line in f:
+                if skip:
+                    # skip header
+                    skip = False
+                    continue
+                # split line of: 0:DATE,1:TICKER,2:LN_MCAP,3:ILLIQ,4:BM,5:ABN_RET,6:ABN_VOLUME,7:ABN_VOLATILITY
+                current = line.rstrip('\n').split(',')
+                if current[1] in self.abn_ret:
+                    self.abn_ret[current[1]][current[0]] = float(current[5])
+                else:
+                    self.abn_ret[current[1]] = OrderedDict()
+                    self.abn_ret[current[1]][current[0]] = float(current[5])
+                if current[1] in self.abn_vol:
+                    self.abn_vol[current[1]][current[0]] = float(current[6])
+                else:
+                    self.abn_vol[current[1]] = OrderedDict()
+                    self.abn_vol[current[1]][current[0]] = float(current[6])
+                if current[1] in self.illiq:
+                    self.illiq[current[1]][current[0]] = float(current[3])
+                else:
+                    self.illiq[current[1]] = OrderedDict()
+                    self.illiq[current[1]][current[0]] = float(current[3])
+                if current[1] in self.abn_volat:
+                    self.abn_volat[current[1]][current[0]] = float(current[7])
+                else:
+                    self.abn_volat[current[1]] = OrderedDict()
+                    self.abn_volat[current[1]][current[0]] = float(current[7])
+                if current[0] not in self.dates:
+                    self.dates[current[0]] = None
+            self.dates = OrderedDict(sorted(self.dates.items(), key=lambda t: t[0]))
+
+    def abnormalReturn(self, firm, date, t1_offset, t2_offset):
+        """
+        Cumulative abnormal returns for firm over [date + t1_offset, date + t2_offset]
+        Return -1 if dates not compatible or if no data available
+        Returns FLOAT
+        """
+        dates = list(self.dates.keys())
+        if (date not in dates) or (dates.index(date) + t1_offset) < 0 or (dates.index(date) + t2_offset) >= len(dates):
+            return -1
+        start_ind = dates.index(date) + t1_offset
+        end_ind = dates.index(date) + t2_offset
+        ar_sum = 0.0
+        for i in range(end_ind - start_ind + 1):
+            if dates[start_ind + i] not in self.abn_ret[firm]:
+                return -1
+            ar_sum += self.abn_ret[firm][dates[start_ind + i]]
+        return ar_sum
+
+    def abnormalVol(self, firm, date, t1_offset, t2_offset):
+        """
+        Average abnormal trading volume (fraction) for firm over [date + t1_offset, date + t2_offset]
+        Return -1 if dates not compatible or if no data available
+        Returns FLOAT
+        """
+        dates = list(self.dates.keys())
+        if (date not in dates) or (dates.index(date) + t1_offset) < 0 or (dates.index(date) + t2_offset) >= len(dates):
+            return -1
+        start_ind = dates.index(date) + t1_offset
+        end_ind = dates.index(date) + t2_offset
+        av_sum = 0.0
+        for i in range(end_ind - start_ind + 1):
+            if dates[start_ind + i] not in self.abn_vol[firm]:
+                return -1
+            av_sum += self.abn_vol[firm][dates[start_ind + i]]
+        return av_sum / (end_ind - start_ind + 1)
+
+    def illiquidity(self, firm, date, t1_offset, t2_offset):
+        """
+        Average of illiquidity measure from Amihud over [date + t1_offset, date + t2_offset]
+        Return -1 if dates not compatible or if no data available
+        Returns FLOAT
+        """
+        dates = list(self.dates.keys())
+        if (date not in dates) or (dates.index(date) + t1_offset) < 0 or (dates.index(date) + t2_offset) >= len(dates):
+            return -1
+        start_ind = dates.index(date) + t1_offset
+        end_ind = dates.index(date) + t2_offset
+        ill_sum = 0.0
+        for i in range(end_ind - start_ind + 1):
+            if dates[start_ind + i] not in self.illiq[firm]:
+                return -1
+            ill_sum += self.illiq[firm][dates[start_ind + i]]
+        return ill_sum / (end_ind - start_ind + 1)
+
+    def abnormalVolatility(self, firm, date, t1_offset, t2_offset):
+        """
+        Average of AbnVolatility for days in [date + t1_offset, date + t2_offset]
+        Return -1 if dates not compatible or if no data available
+        Returns FLOAT
+        """
+        dates = list(self.dates.keys())
+        if (date not in dates) or (dates.index(date) + t1_offset) < 0 or (dates.index(date) + t2_offset) >= len(dates):
+            return -1
+        start_ind = dates.index(date) + t1_offset
+        end_ind = dates.index(date) + t2_offset
+        avo_sum = 0.0
+        for i in range(end_ind - start_ind + 1):
+            if dates[start_ind + i] not in self.abn_volat[firm]:
+                return -1
+            avo_sum += self.abn_volat[firm][dates[start_ind + i]]
+        return avo_sum / (end_ind - start_ind + 1)
 

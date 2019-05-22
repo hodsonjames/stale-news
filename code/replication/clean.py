@@ -1,7 +1,7 @@
 # clean.py
 # -------
 # Writes new CSVs that only have mutually shared tickers
-import databases as d
+import pandas as pd
 
 """
 # setup databases to read in from
@@ -41,10 +41,17 @@ def keep_shared(file_name, new_name, shared_tics, tic_col_num, row_size):
     g.close()
 
 
+def sort_by_date(file_name, new_name, date_col_name):
+    df = pd.read_csv(file_name)
+    df.sort_values(by=[date_col_name], inplace=True)
+    df.to_csv(new_name, index=False)
+
+
+"""
 keep_shared("compustat_full.csv", "reduced_compustat_full.csv", sharedTics, 4, 6)
+sort_by_date("reduced_compustat_full.csv", "reduced_compustat_full.csv", "datadate")
 keep_shared("crsp_full.csv", "reduced_crsp_full.csv", sharedTics, 2, 9)
+sort_by_date("reduced_crsp_full.csv", "reduced_crsp_full.csv", "date")
 keep_shared("djn_data.csv", "reduced_djn_data.csv", sharedTics, 2, 11)
-
-
-
+"""
 

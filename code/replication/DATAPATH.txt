@@ -1,0 +1,37 @@
+From data to regression:
+
+1. clean.py
+    Input:
+        - compustat_full.csv
+        - crsp_full.csv
+        - djn_data.csv
+    Output:
+        - reduced_compustat_full.csv
+        - reduced_crsp_full.csv
+        - reduced_djn_data.csv
+
+2. extract_news.py
+    Input:
+        - reduced_djn_data.csv
+    Output:
+        - news_measures.csv
+
+3. merge_market.py
+    Input:
+        - reduced_compustat_full.csv
+        - reduced_crsp_full.csv
+    Output:
+        - market_measures.csv
+
+4. extract_reg_data.py
+    Input:
+        - news_measures.csv
+        - market_measures.csv
+    Output:
+        - reg_data_eq_8.csv
+        - reg_data_eq_9.csv
+        - reg_data_eq_10.csv
+        - reg_data_eq_11.csv
+        - reg_data_eq_12_t1_2_t2_11.csv
+        - reg_data_eq_12_t1_2_t2_4.csv
+        - reg_data_eq_12_t1_2_t2_6.csv
