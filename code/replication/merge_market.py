@@ -182,9 +182,9 @@ for tic in ticker_to_date_to_abn_ret:
 
 # 4TH Pass
 # Create file and write header
-file_name = "market_measures.csv"
+file_name = "market_measures_report_control.csv"
 g = open(file_name, "w+")
-header = "DATE,TICKER,LN_MCAP,ILLIQ,BM,ABN_RET,ABN_VOLUME,ABN_VOLATILITY\n"
+header = "DATE,TICKER,LN_MCAP,ILLIQ,BM,ABN_RET,ABN_VOLUME,ABN_VOLATILITY,REPORT\n"
 g.write(header)
 
 with open(intermed_name_3) as f:
@@ -201,8 +201,8 @@ with open(intermed_name_3) as f:
             continue
         if current[1] in ticker_to_date_to_abn_volat and current[0] in ticker_to_date_to_abn_volat[current[1]]:
             new_line = current[0] + "," + current[1] + "," + current[4] + "," + current[6] + "," + current[7] + \
-                "," + current[9] + "," + current[10] + "," + \
-                str(ticker_to_date_to_abn_volat[current[1]][current[0]]) + "\n"
+                "," + current[9] + "," + current[10] + "," + str(ticker_to_date_to_abn_volat[current[1]][current[0]]) +\
+                "," + str(compustat.isReportDate(current[1], current[0])) + "\n"
             g.write(new_line)
 g.close()
 

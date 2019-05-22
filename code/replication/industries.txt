@@ -1,0 +1,390 @@
+
+S&P Industry Sector Code
+Variable Name = spcindcd
+
+Description
+
+110
+Aerospace/Defense
+
+112
+Agricultural Products
+
+115
+Aluminum
+
+120
+Automobiles
+
+130
+Auto Parts & Equipment
+
+135
+Trucks & Parts
+
+140
+Beverages (Alcoholic)
+
+145
+Beverages (Non-Alcoholic)
+
+147
+Biotechnology
+
+150
+Broadcasting (Television, Radio & Cable)
+
+155
+Building Materials
+
+160
+Chemicals
+
+165
+Chemicals (Diversified)
+
+167
+Chemicals (Specialty)
+
+170
+Coal
+
+175
+Services (Commercial & Consumer)
+
+180
+Communications Equipment
+
+185
+Computers (Software & Services)
+
+187
+Computers (Networking)
+
+188
+Computers (Peripherals)
+
+190
+Computers (Hardware)
+
+200
+Conglomerates
+
+202
+Construction (Cement & Aggregates)
+
+203
+Consumer (Jewelry, Novelties & Gifts)
+
+205
+Containers (Metal & Glass)
+
+210
+Containers & Packaging (Paper)
+
+215
+Personal Care
+
+217
+Distributors (Food & Health)
+
+218
+Distributors (Durables)
+
+220
+Electrical Equipment
+
+222
+Electronics (Component Distributors)
+
+225
+Electronics (Defense)
+
+230
+Electronics (Instrumentation)
+
+235
+Electronics (Semiconductors)
+
+240
+Engineering & Construction
+
+245
+Entertainment
+
+247
+Equipment (Semiconductors)
+
+250
+Foods
+
+262
+Gaming, Lottery & Parimutuel Companies
+
+265
+Gold & Precious Metals Mining
+
+270
+Hardware & Tools
+
+280
+Health Care (Diversified)
+
+283
+Health Care (Drugs-Generic & Other)
+
+285
+Health Care (Drugs-Major Pharmaceuticals)
+
+287
+Health Care (Managed Care)
+
+289
+Health Care (Long Term Care)
+
+290
+Health Care Miscellaneous
+
+292
+Health Care (Specialized Services)
+
+295
+Health Care (Hospital Management)
+
+300
+Health Care (Medical Products & Supplies)
+
+305
+Homebuilding
+
+310
+Lodging-Hotels
+
+315
+Household Furn. & Appliances
+
+320
+Household Products (Non-Durables)
+
+325
+Housewares
+
+330
+Insurance Brokers
+
+335
+Leisure Time
+
+340
+Machine Tools
+
+345
+Machinery (Diversified)
+
+350
+Manufactured Housing
+
+355
+Manufacturing (Diversified)
+
+357
+Manufacturing (Specialized)
+
+358
+Metal Fabricators
+
+360
+Metals Mining
+
+365
+Miscellaneous
+
+370
+Office Equipment & Supplies
+
+375
+Oil & Gas Drilling
+
+380
+Oil & Gas (Exploration & Production)
+
+382
+Oil & Gas (Refining & Marketing)
+
+385
+Oil (Domestic Integrated)
+
+390
+Oil (International Integrated)
+
+395
+Oil & Gas (Drilling & Equipment)
+
+400
+Paper & Forest Products
+
+403
+Photography/Imaging
+
+405
+Waste Management
+
+410
+Publishing
+
+415
+Publishing (Newspapers)
+
+420
+Restaurants
+
+426
+Retail (Computers & Electronics)
+
+430
+Retail (Department Stores)
+
+432
+Retail (Discounters)
+
+435
+Retail (Drug Stores)
+
+440
+Retail (Food Chains)
+
+445
+Retail (General Merchandise)
+
+447
+Retail (Home Shopping)
+
+449
+Retail (Specialty)
+
+450
+Retail (Building Supplies)
+
+452
+Retail (Specialty-Apparel)
+
+453
+Services (Data Processing)
+
+454
+Services (Computer Systems)
+
+455
+Footwear
+
+456
+Services (Advertising/Marketing)
+
+457
+Services (Employment)
+
+458
+Specialty Printing
+
+459
+Services (Facilities & Environmental)
+
+460
+Iron & Steel
+
+461
+Services (Payroll Processing)
+
+462
+Telecommunications (Cellular/Wireless)
+
+463
+Telecommunications (Long Distance)
+
+464
+Services (Rental)
+
+465
+Textiles (Apparel)
+
+467
+Textiles (Home Furnishings)
+
+468
+Textiles (Specialty)
+
+470
+Tobacco
+
+475
+Leisure Time (Products)
+
+605
+Airlines
+
+610
+Railroads
+
+612
+Shipping
+
+615
+Truckers
+
+620
+Air Freight
+
+705
+Electric Companies
+
+710
+Natural Gas
+
+715
+Telephone
+
+720
+Power Producers (Independent)
+
+725
+Water Utilities
+
+810
+Banks (Money Center)
+
+815
+Banks (Major Regional)
+
+817
+Banks (Regional)
+
+820
+Other Major Banks
+
+822
+Investment Banking/Brokerage
+
+823
+Investment Management
+
+825
+Insurance (Life/Health)
+
+830
+Insurance (Multi-Line)
+
+835
+Insurance (Property-Casualty)
+
+837
+REITS
+
+840
+Savings & Loan Companies
+
+845
+Consumer Finance
+
+850
+Financial (Diversified)
+

@@ -296,8 +296,12 @@ class BookDatabase:
         """
         Takes a file name and creates a BookDatabase for the corresponding file
         self.data: maps ticker to list of its relevant data rows
+        self.report_date: maps ticker to set of its report dates
+        self.industry: maps ticker to industry
         """
         self.data = {}
+        self.report_date = {}
+        self.industry = {}
         with open(file) as f:
             skip = True
             for line in f:
@@ -305,12 +309,17 @@ class BookDatabase:
                     # skip header
                     skip = False
                     continue
-                # split line of: 0:gvkey,1:datadate,2:fyearq,3:fqtr,4:tic,5:ceqq
+                # split line of: 0:gvkey,1:datadate,2:fyearq,3:fqtr,4:tic,5:rdq,6:ceqq,7:spcindcd
                 current = line.rstrip('\n').split(',')
                 if current[4] in self.data:
                     self.data[current[4]].append(current)
+                    self.report_date[current[4]].add(current[5])  # updates when self.data updates
                 else:
                     self.data[current[4]] = [current]
+                    self.report_date[current[4]] = set()
+                    self.report_date[current[4]].add(current[5])
+                if current[4] not in self.industry:
+                    self.industry[current[4]] = current[7]
 
     def getBookValue(self, firm, date, bookUnit=1000000):
         """
@@ -319,20 +328,22 @@ class BookDatabase:
         Returns -1 if no data available
         Returns FLOAT
         """
+        if firm not in self.data:
+            return -1
         rows = self.data[firm]
         low_ind = 0
-        low_date = rows[low_ind][1]
+        low_date = rows[low_ind][5]  # uses rqd
         high_ind = len(rows) - 1
-        high_date = rows[high_ind][1]
+        high_date = rows[high_ind][5]
         unadjusted = -1
         if date > high_date:
-            unadjusted = float(rows[high_ind][5])
+            unadjusted = float(rows[high_ind][6])
         elif date <= low_date:
             # no data
             return unadjusted
         else:
             mid_ind = (low_ind + high_ind) // 2
-            mid_date = rows[mid_ind][1]
+            mid_date = rows[mid_ind][5]
             while mid_ind != low_ind:
                 if mid_date <= date:
                     low_ind = mid_ind
@@ -340,12 +351,26 @@ class BookDatabase:
                 else:
                     high_ind = mid_ind
                 mid_ind = (low_ind + high_ind) // 2
-                mid_date = rows[mid_ind][1]
+                mid_date = rows[mid_ind][5]
             if low_date == date:
-                unadjusted = float(rows[low_ind - 1][5])
+                unadjusted = float(rows[low_ind - 1][6])
             else:
-                unadjusted = float(rows[low_ind][5])
+                unadjusted = float(rows[low_ind][6])
         return unadjusted * bookUnit
+
+    def isReportDate(self, firm, date):
+        """
+        Date is an earnings report date for the firm
+        Returns Boolean
+        """
+        return date in self.report_date[firm]
+
+    def industryCode(self, firm):
+        """
+        Returns industry code for firm
+        Returns String
+        """
+        return self.industry[firm]
 
 
 class ProcessedNewsDatabase:
@@ -430,7 +455,7 @@ class ProcessedMarketDatabase:
                     # skip header
                     skip = False
                     continue
-                # split line of: 0:DATE,1:TICKER,2:LN_MCAP,3:ILLIQ,4:BM,5:ABN_RET,6:ABN_VOLUME,7:ABN_VOLATILITY
+                # split line of: 0:DATE,1:TICKER,2:LN_MCAP,3:ILLIQ,4:BM,5:ABN_RET,6:ABN_VOLUME,7:ABN_VOLATILITY,8:EARNINGS
                 current = line.rstrip('\n').split(',')
                 if current[1] in self.abn_ret:
                     self.abn_ret[current[1]][current[0]] = float(current[5])

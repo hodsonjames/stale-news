@@ -48,8 +48,8 @@ def sort_by_date(file_name, new_name, date_col_name):
 
 
 """
-keep_shared("compustat_full.csv", "reduced_compustat_full.csv", sharedTics, 4, 6)
-sort_by_date("reduced_compustat_full.csv", "reduced_compustat_full.csv", "datadate")
+keep_shared("compustat_full.csv", "reduced_compustat_full.csv", sharedTics, 4, 8)
+sort_by_date("reduced_compustat_full.csv", "reduced_compustat_full.csv", "rdq")
 keep_shared("crsp_full.csv", "reduced_crsp_full.csv", sharedTics, 2, 9)
 sort_by_date("reduced_crsp_full.csv", "reduced_crsp_full.csv", "date")
 keep_shared("djn_data.csv", "reduced_djn_data.csv", sharedTics, 2, 11)

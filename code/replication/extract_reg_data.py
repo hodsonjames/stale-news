@@ -4,10 +4,11 @@
 import databases as d
 
 
-def generate_csv8_9(news_file_name, market_file_name, eight=True):
+def generate_csv8_9(news_file_name, market_file_name, eight=True, earnings=False):
     """
     Writes csv file for regression computation
     eight: True computes equation 8, False computes equation 9
+    earnings: True adds earnings control column
     """
     # Set up database of news_file
     news_db = d.ProcessedNewsDatabase(news_file_name)
@@ -18,7 +19,10 @@ def generate_csv8_9(news_file_name, market_file_name, eight=True):
     else:
         file_name = "reg_data_eq_9.csv"
     g = open(file_name, "w+")
-    header = "date,dependent,AbnPctOld,Stories,AbnStories,Terms,MCap,BM,AbnRet,AbnVol,AbnVolatility,Illiq\n"
+    if earnings:
+        header = "date,dependent,AbnPctOld,Stories,AbnStories,Terms,MCap,BM,AbnRet,AbnVol,AbnVolatility,Illiq,Earnings\n"
+    else:
+        header = "date,dependent,AbnPctOld,Stories,AbnStories,Terms,MCap,BM,AbnRet,AbnVol,AbnVolatility,Illiq\n"
     g.write(header)
 
     dates = list(market_db.dates.keys())
@@ -33,7 +37,7 @@ def generate_csv8_9(news_file_name, market_file_name, eight=True):
             if skip:
                 skip = False
                 continue
-            # split line: 0:DATE,1:TICKER,2:LN_MCAP,3:ILLIQ,4:BM,5:ABN_RET,6:ABN_VOLUME,7:ABN_VOLATILITY
+            # split line: 0:DATE,1:TICKER,2:LN_MCAP,3:ILLIQ,4:BM,5:ABN_RET,6:ABN_VOLUME,7:ABN_VOLATILITY,8:REPORT
             current_market = line.rstrip('\n').split(',')
             # split line: 0:DATE,1:TICKER,2:STORIES,3:TERMS,4:ABN_PCT_OLD,5:ABN_PCT_REC
             current_news = news_lines[news_index].rstrip('\n').split(',')
@@ -114,16 +118,23 @@ def generate_csv8_9(news_file_name, market_file_name, eight=True):
             if temp == -1:
                 continue
             out_line += "," + str(temp)
+            if earnings:
+                # append Earnings (t)
+                if bool(current_market[8]):
+                    out_line += "," + str(1)
+                else:
+                    out_line += "," + str(0)
             out_line += "\n"
             g.write(out_line)
     news_f.close()
     g.close()
 
 
-def generate_csv10_11(news_file_name, market_file_name, ten=True):
+def generate_csv10_11(news_file_name, market_file_name, ten=True, earnings=False):
     """
     Writes csv file for regression computation
     ten: True computes equation 10, False computes equation 11
+    earnings: True adds earnings control column
     """
     # Set up database of news_file
     news_db = d.ProcessedNewsDatabase(news_file_name)
@@ -134,7 +145,11 @@ def generate_csv10_11(news_file_name, market_file_name, ten=True):
     else:
         file_name = "reg_data_eq_11.csv"
     g = open(file_name, "w+")
-    header = "date,dependent,AbnPctOld,AbnPcrRecombinations,Stories,AbnStories," \
+    if earnings:
+        header = "date,dependent,AbnPctOld,AbnPcrRecombinations,Stories,AbnStories," \
+                 "Terms,MCap,BM,AbnRet,AbnVol,AbnVolatility,Illiq,Earnings\n"
+    else:
+        header = "date,dependent,AbnPctOld,AbnPcrRecombinations,Stories,AbnStories," \
              "Terms,MCap,BM,AbnRet,AbnVol,AbnVolatility,Illiq\n"
     g.write(header)
 
@@ -150,7 +165,7 @@ def generate_csv10_11(news_file_name, market_file_name, ten=True):
             if skip:
                 skip = False
                 continue
-            # split line: 0:DATE,1:TICKER,2:LN_MCAP,3:ILLIQ,4:BM,5:ABN_RET,6:ABN_VOLUME,7:ABN_VOLATILITY
+            # split line: 0:DATE,1:TICKER,2:LN_MCAP,3:ILLIQ,4:BM,5:ABN_RET,6:ABN_VOLUME,7:ABN_VOLATILITY,8:REPORT
             current_market = line.rstrip('\n').split(',')
             # split line: 0:DATE,1:TICKER,2:STORIES,3:TERMS,4:ABN_PCT_OLD,5:ABN_PCT_REC
             current_news = news_lines[news_index].rstrip('\n').split(',')
@@ -233,15 +248,22 @@ def generate_csv10_11(news_file_name, market_file_name, ten=True):
             if temp == -1:
                 continue
             out_line += "," + str(temp)
+            if earnings:
+                # append Earnings (t)
+                if bool(current_market[8]):
+                    out_line += "," + str(1)
+                else:
+                    out_line += "," + str(0)
             out_line += "\n"
             g.write(out_line)
     news_f.close()
     g.close()
 
 
-def generate_csv12(news_file_name, market_file_name, t1, t2):
+def generate_csv12(news_file_name, market_file_name, t1, t2, earnings=False):
     """
     Writes csv file for regression computation using offsets t1 and t2
+    earnings: True adds earnings control column
     """
     # Set up database of news_file
     news_db = d.ProcessedNewsDatabase(news_file_name)
@@ -249,8 +271,12 @@ def generate_csv12(news_file_name, market_file_name, t1, t2):
     # Create output file and write header
     file_name = "reg_data_eq_12_t1_" + str(t1) + "_t2_" + str(t2) + ".csv"
     g = open(file_name, "w+")
-    header = "date,dependent,AbnPcrOld,AbnPcrOldXAbnRet,AbnRet,AbnPcrRecombination,AbnPcrRecombinationXAbnRet" \
-             ",Stories,AbnStories,Terms,MCap,BM,AbnRetVect,AbnVol,AbnVolatility,Illiq\n"
+    if earnings:
+        header = "date,dependent,AbnPcrOld,AbnPcrOldXAbnRet,AbnRet,AbnPcrRecombination,AbnPcrRecombinationXAbnRet" \
+                 ",Stories,AbnStories,Terms,MCap,BM,AbnRetVect,AbnVol,AbnVolatility,Illiq,Earnings\n"
+    else:
+        header = "date,dependent,AbnPcrOld,AbnPcrOldXAbnRet,AbnRet,AbnPcrRecombination,AbnPcrRecombinationXAbnRet" \
+                 ",Stories,AbnStories,Terms,MCap,BM,AbnRetVect,AbnVol,AbnVolatility,Illiq\n"
     g.write(header)
 
     dates = list(market_db.dates.keys())
@@ -265,7 +291,7 @@ def generate_csv12(news_file_name, market_file_name, t1, t2):
             if skip:
                 skip = False
                 continue
-            # split line: 0:DATE,1:TICKER,2:LN_MCAP,3:ILLIQ,4:BM,5:ABN_RET,6:ABN_VOLUME,7:ABN_VOLATILITY
+            # split line: 0:DATE,1:TICKER,2:LN_MCAP,3:ILLIQ,4:BM,5:ABN_RET,6:ABN_VOLUME,7:ABN_VOLATILITY,8:REPORT
             current_market = line.rstrip('\n').split(',')
             # split line: 0:DATE,1:TICKER,2:STORIES,3:TERMS,4:ABN_PCT_OLD,5:ABN_PCT_REC
             current_news = news_lines[news_index].rstrip('\n').split(',')
@@ -353,6 +379,12 @@ def generate_csv12(news_file_name, market_file_name, t1, t2):
             if temp == -1:
                 continue
             out_line += "," + str(temp)
+            if earnings:
+                # append Earnings (t)
+                if bool(current_market[8]):
+                    out_line += "," + str(1)
+                else:
+                    out_line += "," + str(0)
             out_line += "\n"
             g.write(out_line)
     news_f.close()
@@ -360,11 +392,12 @@ def generate_csv12(news_file_name, market_file_name, t1, t2):
 
 
 """
-generate_csv8_9("news_measures.csv", "market_measures.csv")
-generate_csv8_9("news_measures.csv", "market_measures.csv", False)
-generate_csv10_11("news_measures.csv", "market_measures.csv")
-generate_csv10_11("news_measures.csv", "market_measures.csv", False)
-generate_csv12("news_measures.csv", "market_measures.csv", 2, 4)
-generate_csv12("news_measures.csv", "market_measures.csv", 2, 6)
-generate_csv12("news_measures.csv", "market_measures.csv", 2, 11)
 """
+generate_csv8_9("news_measures.csv", "market_measures.csv", True, True)
+generate_csv8_9("news_measures.csv", "market_measures.csv", False, True)
+generate_csv10_11("news_measures.csv", "market_measures.csv", True, True)
+generate_csv10_11("news_measures.csv", "market_measures.csv", False, True)
+generate_csv12("news_measures.csv", "market_measures.csv", 2, 4, True)
+generate_csv12("news_measures.csv", "market_measures.csv", 2, 6, True)
+generate_csv12("news_measures.csv", "market_measures.csv", 2, 11, True)
+
