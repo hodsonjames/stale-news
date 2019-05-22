@@ -182,7 +182,7 @@ for tic in ticker_to_date_to_abn_ret:
 
 # 4TH Pass
 # Create file and write header
-file_name = "market_measures_report_control.csv"
+file_name = "market_measures.csv"
 g = open(file_name, "w+")
 header = "DATE,TICKER,LN_MCAP,ILLIQ,BM,ABN_RET,ABN_VOLUME,ABN_VOLATILITY,REPORT\n"
 g.write(header)

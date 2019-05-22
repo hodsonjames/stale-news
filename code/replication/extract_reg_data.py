@@ -120,7 +120,7 @@ def generate_csv8_9(news_file_name, market_file_name, eight=True, earnings=False
             out_line += "," + str(temp)
             if earnings:
                 # append Earnings (t)
-                if bool(current_market[8]):
+                if eval(current_market[8]):
                     out_line += "," + str(1)
                 else:
                     out_line += "," + str(0)
@@ -250,7 +250,7 @@ def generate_csv10_11(news_file_name, market_file_name, ten=True, earnings=False
             out_line += "," + str(temp)
             if earnings:
                 # append Earnings (t)
-                if bool(current_market[8]):
+                if eval(current_market[8]):
                     out_line += "," + str(1)
                 else:
                     out_line += "," + str(0)
@@ -381,7 +381,7 @@ def generate_csv12(news_file_name, market_file_name, t1, t2, earnings=False):
             out_line += "," + str(temp)
             if earnings:
                 # append Earnings (t)
-                if bool(current_market[8]):
+                if eval(current_market[8]):
                     out_line += "," + str(1)
                 else:
                     out_line += "," + str(0)
