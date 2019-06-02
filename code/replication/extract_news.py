@@ -1,6 +1,6 @@
 # extract_news.py
 # -------
-# Extracts news measures and writes a new CSV
+# Extracts news measures and writes a new CSV, sorted first by date and then by ticker
 import databases as d
 import utils as u
 import pandas as pd

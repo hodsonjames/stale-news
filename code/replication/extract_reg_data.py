@@ -391,8 +391,7 @@ def generate_csv12(news_file_name, market_file_name, t1, t2, earnings=False):
     g.close()
 
 
-"""
-"""
+# Regression data with earnings control
 generate_csv8_9("news_measures.csv", "market_measures.csv", True, True)
 generate_csv8_9("news_measures.csv", "market_measures.csv", False, True)
 generate_csv10_11("news_measures.csv", "market_measures.csv", True, True)

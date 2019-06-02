@@ -1,6 +1,6 @@
 # merge_market.py
 # -------
-# Merges COMPUSTAT and CRSP and writes a new CSV
+# Merges COMPUSTAT and CRSP and writes a new CSV, sorted first by date and then by ticker
 import os
 import databases as d
 import utils_direct as ud
