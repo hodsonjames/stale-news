@@ -2,14 +2,14 @@
    Made by Christopher Gong
 
    Summary:
-The methods below apply the stale news procedure outline in the paper "When Can the Market Identify Stale News? " by Anasteesia Fedyk and James Hodson. The procedure goes through each article in chronological order from multiple sorted nml files, checking its similarity with articles about the same company that have been previously seen by the procedure and are within the last 72 hours. If an article is about multiple companies, the article will be processed once per company. A provided similarity test is used, and key similarity information (DATE_EST, STORY_ID, TICKER, CLOSEST_ID, CLOSEST_SCORE, TOTAL_OVERLAP, IS_OLD, IS_REPRINT, IS_RECOMB) is written to a csv file. 
+The methods below apply the stale news procedure outline in the paper "When Can the Market Identify Stale News? " by Anasteesia Fedyk and James Hodson. The procedure goes through each article in chronological order from multiple sorted nml files, checking its similarity with articles about the same company that have been previously seen by the procedure and are within the last 72 hours. If an article is about multiple companies, the article will be processed once per company. A provided similarity test is used, and key similarity information (DATE_EST, STORY_ID, TICKER, CLOSEST_ID, CLOSEST_SCORE, TOTAL_OVERLAP, IS_OLD, IS_REPRINT, IS_RECOMB) is written to a csv file.
 
 Optimizations:
 Understanding the mere size of the number of articles published in a day, and the decade long amount of data to be processed in this way, key optimizations can be made to drastically reduce the time needed to for the procedure. First, articles are processed one at a time in a getter structure for less memory useage. Theoretically, the procedure can handle an infinite sequence of articles. Second, after an article has been processed, only important informaton is kept, in a story class. Lastly, the stories related to a company are stored in a linked list in reverse chronological order. When processing a new article, only the previous 72 hours of articles are considered, and any older articles will be removed by way of cut (or prune) of the linked list, to never have more than 72 hours of articles for a comapny to be stored. This optimization can be made because the articles are considered in chronological order. """
 
 import xml.etree.ElementTree as ET
 import re
-from nltk.corpus import stopwords 
+from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import nltk
 from nltk.stem.porter import *
@@ -30,14 +30,14 @@ fs = glob.glob('data/*.nml')
 #line below needs to be run at least once.
 #nltk.download('punkt')
 eastern = timezone('US/Eastern')
-stop_words = set(stopwords.words('english')) 
+stop_words = set(stopwords.words('english'))
 stemmer = PorterStemmer()
 stemDict = dict() # dict from stem to index, for faster set comparisons
 wordDict = dict() # dict from word to stem
 
 #Key functions
 def xmlTreeGetter(filename="2001_sample_10M.nml"):
-    '''A getter function for each article. When next is called, it will return the next article. 
+    '''A getter function for each article. When next is called, it will return the next article.
     The files are split by the </doc> tag, which is at the end of every article.'''
     nmlFile = open(filename)
     text = ""
@@ -107,21 +107,21 @@ def stem(tokenizedWords):
 def stop(tokenizedWords):
     """Returns a list of with stop words removed."""
     #ft.begin("stop")
-    filtered_sentence = set() 
-    for w in tokenizedWords: 
-        if w not in stop_words: 
-            filtered_sentence.add(w) 
+    filtered_sentence = set()
+    for w in tokenizedWords:
+        if w not in stop_words:
+            filtered_sentence.add(w)
     #ft.end("stop")
     return list(filtered_sentence)
 
-def intersection(lst1, lst2): 
+def intersection(lst1, lst2):
     """returns the intersection between two lists"""
     #ft.begin("intersection")
     if (lst1 == None or lst2 == None):
         return []
-    lst3 = [value for value in lst1 if value in lst2] 
+    lst3 = [value for value in lst1 if value in lst2]
     #ft.end("intersection")
-    return lst3 
+    return lst3
 
 def similaritytest(orig, B):
     """returns a similarity score between stemmed article orig and a stemmed article (text)"""
@@ -232,7 +232,7 @@ class Story:
 
 class myLinkedList:
     '''A linked list. One key property of this LL is that the next node can be called with nextNode.
-    If cut is called, the LL will be pruned (or cut) at the location of nextNode, so that unnecessary 
+    If cut is called, the LL will be pruned (or cut) at the location of nextNode, so that unnecessary
     information can be easily removed.'''
     head = None
     end = None
@@ -318,13 +318,13 @@ if __name__ == '__main__':
         procedure(sys.argv[1], sys.argv[2], None)
     else:
         sys.exit(1)
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
