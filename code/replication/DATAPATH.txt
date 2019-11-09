@@ -1,4 +1,4 @@
-From data to regression:
+From all data to equation regressions:
 
 1. clean.py
     Input:
@@ -35,3 +35,12 @@ From data to regression:
         - reg_data_eq_12_t1_2_t2_11.csv
         - reg_data_eq_12_t1_2_t2_4.csv
         - reg_data_eq_12_t1_2_t2_6.csv
+        - reg_data_recomb_on_size.csv
+
+From news data to weekly recombination statistics:
+
+1. recomb_statistcs.py
+    Input:
+        - reduced_djn_data.csv
+    Output:
+        - printed summary statistics

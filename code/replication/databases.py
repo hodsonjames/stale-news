@@ -231,6 +231,7 @@ class AdjustableMeasuresDatabase(TextDatabase):
         7. self.pctrec: Maps (ticker, date) to percentage recombinations for firm on date
         8. self.stor: Maps (ticker, date) to count stories for firm on date
         9. self.term: Maps (ticker, date) to average number of terms for firm on date
+        8. self.recstor: Maps (ticker, date) to count recombination stories for firm on date
         """
         super().__init__(file)
         self.dates = OrderedDict()
@@ -242,6 +243,7 @@ class AdjustableMeasuresDatabase(TextDatabase):
         self.pctrec = {}
         self.stor = {}
         self.term = {}
+        self.recstor = {}
 
         # Skip header row
         skip = True
@@ -258,8 +260,15 @@ class AdjustableMeasuresDatabase(TextDatabase):
                 self.dates[date] = None
             if (row[2], date) in self.tdMap:
                 self.tdMap[(row[2], date)].append(row)
+                # another recombination story
+                if eval(row[10]):
+                    self.recstor[(row[2], date)] += 1
             else:
                 self.tdMap[(row[2], date)] = [row]
+                if eval(row[10]):
+                    self.recstor[(row[2], date)] = 1
+                else:
+                    self.recstor[(row[2], date)] = 0
         self.dates = OrderedDict(sorted(self.dates.items(), key=lambda t: t[0]))
 
     def putAPOReg(self, date, ols):
@@ -297,7 +306,7 @@ class BookDatabase:
         Takes a file name and creates a BookDatabase for the corresponding file
         self.data: maps ticker to list of its relevant data rows
         self.report_date: maps ticker to set of its report dates
-        self.industry: maps ticker to industry
+        self.industry: maps ticker to 2-digit prefix of industry code from NAICS
         """
         self.data = {}
         self.report_date = {}
@@ -309,7 +318,7 @@ class BookDatabase:
                     # skip header
                     skip = False
                     continue
-                # split line of: 0:gvkey,1:datadate,2:fyearq,3:fqtr,4:tic,5:rdq,6:ceqq,7:spcindcd
+                # split line of: 0:gvkey,1:datadate,2:fyearq,3:fqtr,4:tic,5:rdq,6:ceqq,7:naics
                 current = line.rstrip('\n').split(',')
                 if current[4] in self.data:
                     self.data[current[4]].append(current)
@@ -365,12 +374,22 @@ class BookDatabase:
         """
         return date in self.report_date[firm]
 
-    def industryCode(self, firm):
+    def getIndustryCode(self, firm):
         """
         Returns industry code for firm
         Returns String
         """
-        return self.industry[firm]
+        two_dig_prefix = self.industry[firm][0:2]
+        # 31-33 Manufacturing: map all to 31
+        if two_dig_prefix == "32" or two_dig_prefix == "33":
+            two_dig_prefix = "31"
+        # 44-45 Retail Trade: map all to 44
+        if two_dig_prefix == "45":
+            two_dig_prefix = "44"
+        # 48-49 Transportation and Warehousing: map all to 48
+        if two_dig_prefix == "49":
+            two_dig_prefix = "48"
+        return two_dig_prefix
 
 
 class ProcessedNewsDatabase:
@@ -380,7 +399,7 @@ class ProcessedNewsDatabase:
 
     def __init__(self, file):
         """
-        Takes a file name and creates a BookDatabase for the corresponding file
+        Takes a file name and creates a ProcessedNewsDatabase for the corresponding file
         self.data: maps each ticker to a dictionary mapping date to stories
         self.dates: Ordered Dictionary of all dates where key = date, value = None, dates are STRINGS
         """
@@ -393,7 +412,7 @@ class ProcessedNewsDatabase:
                     # skip header
                     skip = False
                     continue
-                # split line of: 0:DATE,1:TICKER,2:STORIES,3:TERMS,4:ABN_PCT_OLD,5:ABN_PCT_REC
+                # split line of: 0:DATE,1:TICKER,2:STORIES,3:TERMS,4:ABN_PCT_OLD,5:ABN_PCT_REC,6:RECOMB_STORIES
                 current = line.rstrip('\n').split(',')
                 if current[1] in self.data:
                     self.data[current[1]][current[0]] = int(current[2])
@@ -455,7 +474,8 @@ class ProcessedMarketDatabase:
                     # skip header
                     skip = False
                     continue
-                # split line of: 0:DATE,1:TICKER,2:LN_MCAP,3:ILLIQ,4:BM,5:ABN_RET,6:ABN_VOLUME,7:ABN_VOLATILITY,8:EARNINGS
+                # split line of: 0:DATE,1:TICKER,2:LN_MCAP,3:ILLIQ,4:BM,5:ABN_RET,6:ABN_VOLUME,7:ABN_VOLATILITY,8:EARNINGS,
+                #  9:INDUSTRY,10:FIRM_SIZE
                 current = line.rstrip('\n').split(',')
                 if current[1] in self.abn_ret:
                     self.abn_ret[current[1]][current[0]] = float(current[5])

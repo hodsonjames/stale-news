@@ -1,0 +1,4 @@
+CRSP
+retx: value can be C or B (such rows discarded in merge_market.py)
+VOL: value can be -99 if no data (no such value found with data)
+PRC: value can be NEGATIVE bid/ask average or ZERO if no data (negatives used after made positive, no zeros observed)

@@ -10,7 +10,7 @@ new_name = "news_measures.csv"
 
 # Create file and write header
 f = open(new_name, "w+")
-header = "DATE,TICKER,STORIES,TERMS,ABN_PCT_OLD,ABN_PCT_REC\n"
+header = "DATE,TICKER,STORIES,TERMS,ABN_PCT_OLD,ABN_PCT_REC,RECOMB_STORIES\n"
 f.write(header)
 
 # Will maintain date order
@@ -20,6 +20,7 @@ for tup in mdb.tdMap:
     line += "," + str(u.terms(tup[0], tup[1], mdb))
     line += "," + str(u.abnormalPercentageOld(tup[0], tup[1], mdb))
     line += "," + str(u.abnormalPercentageRecombinations(tup[0], tup[1], mdb))
+    line += "," + str(mdb.recstor[tup])
     line += "\n"
     f.write(line)
 

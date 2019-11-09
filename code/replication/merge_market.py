@@ -19,6 +19,11 @@ g.write(header)
 
 # Used in 2ND PASS
 date_to_total_mcap = OrderedDict()
+# Used in 4TH PASS
+date_to_ticker_to_mcap = {}  # maps every date to dictionary that maps each ticker its market cap
+date_to_mcaps = {}  # maps every date to list of market caps on that day
+current_ticker_to_mcap = {}
+current_mcaps = []
 
 with open("reduced_crsp_full.csv") as f:
     skip = True
@@ -31,7 +36,7 @@ with open("reduced_crsp_full.csv") as f:
         # split line of crsp: 0:PERMNO,1:date,2:TICKER,3:PRC,4:VOL,5:SHROUT,6:OPENPRC,7:RETX,8:vwretx
         current = line.rstrip('\n').split(',')
         # skip if RETX is invalid
-        if current[7] == 'C':
+        if current[7] == 'C' or current[7] == 'B':
             continue
         # if this is a new day total market cap for the previous day is ready to store
         if current[1] != current_date:
@@ -40,12 +45,20 @@ with open("reduced_crsp_full.csv") as f:
                 current_date = current[1]
             else:
                 date_to_total_mcap[current_date] = total_mcap
+                date_to_ticker_to_mcap[current_date] = current_ticker_to_mcap
+                current_mcaps.sort()
+                date_to_mcaps[current_date] = current_mcaps
                 current_date = current[1]
                 total_mcap = 0
+                current_ticker_to_mcap = {}
+                current_mcaps = []
         # insert DATE, TICKER, RETX
         new_line = current[1] + "," + current[2] + "," + current[7]
-        mcap = ud.marketCap(float(current[3]), float(current[5]))
+        mcap = ud.marketCap(abs(float(current[3])), float(current[5]))  # PRC may be negative bid-ask average
         total_mcap += mcap
+        if current[2] not in current_ticker_to_mcap:  # in case crsp has redundancy
+            current_ticker_to_mcap[current[2]] = mcap
+            current_mcaps.append(mcap)
         # insert MCAP
         new_line += "," + str(mcap)
         # insert LN_MCAP
@@ -64,6 +77,9 @@ with open("reduced_crsp_full.csv") as f:
         g.write(new_line)
     # last day total market cap still needs to be entered
     date_to_total_mcap[current_date] = total_mcap
+    date_to_ticker_to_mcap[current_date] = current_ticker_to_mcap
+    current_mcaps.sort()
+    date_to_mcaps[current_date] = current_mcaps
 g.close()
 
 # Sort by date and ticker
@@ -184,7 +200,7 @@ for tic in ticker_to_date_to_abn_ret:
 # Create file and write header
 file_name = "market_measures.csv"
 g = open(file_name, "w+")
-header = "DATE,TICKER,LN_MCAP,ILLIQ,BM,ABN_RET,ABN_VOLUME,ABN_VOLATILITY,REPORT\n"
+header = "DATE,TICKER,LN_MCAP,ILLIQ,BM,ABN_RET,ABN_VOLUME,ABN_VOLATILITY,REPORT,INDUSTRY,FIRM_SIZE\n"
 g.write(header)
 
 with open(intermed_name_3) as f:
@@ -202,7 +218,9 @@ with open(intermed_name_3) as f:
         if current[1] in ticker_to_date_to_abn_volat and current[0] in ticker_to_date_to_abn_volat[current[1]]:
             new_line = current[0] + "," + current[1] + "," + current[4] + "," + current[6] + "," + current[7] + \
                 "," + current[9] + "," + current[10] + "," + str(ticker_to_date_to_abn_volat[current[1]][current[0]]) +\
-                "," + str(compustat.isReportDate(current[1], current[0])) + "\n"
+                "," + str(compustat.isReportDate(current[1], current[0])) + "," + \
+                compustat.getIndustryCode(current[1]) + "," + \
+                str(ud.firm_size_quintile(date_to_ticker_to_mcap[current[0]][current[1]], date_to_mcaps[current[0]])) + "\n"
             g.write(new_line)
 g.close()
 
@@ -210,5 +228,3 @@ g.close()
 os.remove(intermed_name_1)
 os.remove(intermed_name_2)
 os.remove(intermed_name_3)
-
-
