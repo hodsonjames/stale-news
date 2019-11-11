@@ -66,11 +66,8 @@ def generate_csv8_9(news_file_name, market_file_name, eight=True, earnings=False
                 current_news = news_lines[news_index].rstrip('\n').split(',')
             if terminate:
                 break
-            # edge case, updated news date passes current market date
-            if current_market[0] < current_news[0]:
-                continue
-            # check ticker alignment
-            if current_market[1] < current_news[1]:
+            # updated news ticker passes current market ticker or updated news date passes current market date
+            if current_market[0] < current_news[0] or current_market[1] < current_news[1]:
                 continue
             while current_news[1] < current_market[1]:
                 news_index += 1
@@ -78,10 +75,13 @@ def generate_csv8_9(news_file_name, market_file_name, eight=True, earnings=False
                     terminate = True
                     break
                 current_news = news_lines[news_index].rstrip('\n').split(',')
+                # make sure date still aligned
+                if current_market[0] < current_news[0]:
+                    break
             if terminate:
                 break
-            # edge case, updated news ticker passes current market ticker
-            if current_market[1] < current_news[1]:
+            # updated news ticker passes current market ticker or updated news date passes current market date
+            if current_market[0] < current_news[0] or current_market[1] < current_news[1]:
                 continue
             # Create line with date (t)
             out_line = current_market[0]
@@ -230,11 +230,8 @@ def generate_csv10_11(news_file_name, market_file_name, ten=True, earnings=False
                 current_news = news_lines[news_index].rstrip('\n').split(',')
             if terminate:
                 break
-            # edge case, updated news date passes current market date
-            if current_market[0] < current_news[0]:
-                continue
-            # check ticker alignment
-            if current_market[1] < current_news[1]:
+            # updated news ticker passes current market ticker or updated news date passes current market date
+            if current_market[0] < current_news[0] or current_market[1] < current_news[1]:
                 continue
             while current_news[1] < current_market[1]:
                 news_index += 1
@@ -242,10 +239,13 @@ def generate_csv10_11(news_file_name, market_file_name, ten=True, earnings=False
                     terminate = True
                     break
                 current_news = news_lines[news_index].rstrip('\n').split(',')
+                # make sure date still aligned
+                if current_market[0] < current_news[0]:
+                    break
             if terminate:
                 break
-            # edge case, updated news ticker passes current market ticker
-            if current_market[1] < current_news[1]:
+            # updated news ticker passes current market ticker or updated news date passes current market date
+            if current_market[0] < current_news[0] or current_market[1] < current_news[1]:
                 continue
             # Create line with date (t)
             out_line = current_market[0]
@@ -392,11 +392,8 @@ def generate_csv12(news_file_name, market_file_name, t1, t2, earnings=False, wee
                 current_news = news_lines[news_index].rstrip('\n').split(',')
             if terminate:
                 break
-            # edge case, updated news date passes current market date
-            if current_market[0] < current_news[0]:
-                continue
-            # check ticker alignment
-            if current_market[1] < current_news[1]:
+            # updated news ticker passes current market ticker or updated news date passes current market date
+            if current_market[0] < current_news[0] or current_market[1] < current_news[1]:
                 continue
             while current_news[1] < current_market[1]:
                 news_index += 1
@@ -404,10 +401,13 @@ def generate_csv12(news_file_name, market_file_name, t1, t2, earnings=False, wee
                     terminate = True
                     break
                 current_news = news_lines[news_index].rstrip('\n').split(',')
+                # make sure date still aligned
+                if current_market[0] < current_news[0]:
+                    break
             if terminate:
                 break
-            # edge case, updated news ticker passes current market ticker
-            if current_market[1] < current_news[1]:
+            # updated news ticker passes current market ticker or updated news date passes current market date
+            if current_market[0] < current_news[0] or current_market[1] < current_news[1]:
                 continue
             # Create line with date (t)
             out_line = current_market[0]
@@ -501,6 +501,42 @@ def generate_csv12(news_file_name, market_file_name, t1, t2, earnings=False, wee
     g.close()
 
 
+def generate_csv13(eq_10_file_name):
+    """
+    Writes csv file for yearly regression computation
+    """
+    # Create first year output file
+    file_year = "2001"
+    file_root = "reg_data_eq_13_"
+    file_name = file_root + file_year + ".csv"
+    header = ""
+
+    g = open(file_name, "w+")
+
+    with open(eq_10_file_name) as f:
+        skip = True
+        for line in f:
+            if skip:
+                skip = False
+                header = line
+                g.write(header)
+                continue
+            # split line: 0:date ...
+            current = line.rstrip('\n').split(',')
+            current_year = current[0][:4]
+            if current_year != file_year:
+                # prepare next file
+                g.close()
+                file_year = current_year
+                file_name = file_root + file_year + ".csv"
+                g = open(file_name, "w+")
+                g.write(header)
+            else:
+                g.write(line)
+        # tail case
+        g.close()
+
+
 def generate_csv_recomb_on_size(news_file_name, market_file_name, relative=True, earnings=False, weekday=False,
                                 industry=False):
     """
@@ -555,11 +591,8 @@ def generate_csv_recomb_on_size(news_file_name, market_file_name, relative=True,
                 current_news = news_lines[news_index].rstrip('\n').split(',')
             if terminate:
                 break
-            # edge case, updated news date passes current market date
-            if current_market[0] < current_news[0]:
-                continue
-            # check ticker alignment
-            if current_market[1] < current_news[1]:
+            # updated news ticker passes current market ticker or updated news date passes current market date
+            if current_market[0] < current_news[0] or current_market[1] < current_news[1]:
                 continue
             while current_news[1] < current_market[1]:
                 news_index += 1
@@ -567,10 +600,13 @@ def generate_csv_recomb_on_size(news_file_name, market_file_name, relative=True,
                     terminate = True
                     break
                 current_news = news_lines[news_index].rstrip('\n').split(',')
+                # make sure date still aligned
+                if current_market[0] < current_news[0]:
+                    break
             if terminate:
                 break
-            # edge case, updated news ticker passes current market ticker
-            if current_market[1] < current_news[1]:
+            # updated news ticker passes current market ticker or updated news date passes current market date
+            if current_market[0] < current_news[0] or current_market[1] < current_news[1]:
                 continue
             # Create line with date (t)
             out_line = current_market[0]
@@ -611,23 +647,18 @@ def generate_csv_recomb_on_size(news_file_name, market_file_name, relative=True,
 
 
 """
+"""
 # Regression data with earnings control
-generate_csv8_9("news_measures.csv", "market_measures.csv", True, True)
-generate_csv8_9("news_measures.csv", "market_measures.csv", False, True)
-generate_csv10_11("news_measures.csv", "market_measures.csv", True, True)
-generate_csv10_11("news_measures.csv", "market_measures.csv", False, True)
-generate_csv12("news_measures.csv", "market_measures.csv", 2, 4, True)
-generate_csv12("news_measures.csv", "market_measures.csv", 2, 6, True)
-generate_csv12("news_measures.csv", "market_measures.csv", 2, 11, True)
-"""
-"""
+generate_csv8_9("news_measures.csv", "market_measures.csv", True, True, True, True, True)
+generate_csv8_9("news_measures.csv", "market_measures.csv", False, True, True, True, True,)
+generate_csv10_11("news_measures.csv", "market_measures.csv", True, True, True, True, True)
+generate_csv10_11("news_measures.csv", "market_measures.csv", False, True, True, True, True)
 # Regressions for reversal with controls
 generate_csv12("news_measures.csv", "market_measures.csv", 2, 4, True, True, True, True)
 generate_csv12("news_measures.csv", "market_measures.csv", 2, 6, True, True, True, True)
 generate_csv12("news_measures.csv", "market_measures.csv", 2, 11, True, True, True, True)
-"""
-"""
+# Regression for time series
+generate_csv13("reg_data_eq_10.csv")
 # Regressions for recombinations on firm size with controls
 generate_csv_recomb_on_size("news_measures.csv", "market_measures.csv", True, True, True, True)
 generate_csv_recomb_on_size("news_measures.csv", "market_measures.csv", False, True, True, True)
-"""

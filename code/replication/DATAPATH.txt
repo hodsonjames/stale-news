@@ -35,7 +35,8 @@ From all data to equation regressions:
         - reg_data_eq_12_t1_2_t2_11.csv
         - reg_data_eq_12_t1_2_t2_4.csv
         - reg_data_eq_12_t1_2_t2_6.csv
-        - reg_data_recomb_on_size.csv
+        - reg_data_recomb_on_size_count.csv
+        - reg_data_recomb_on_size_relative.csv
 
 From news data to weekly recombination statistics:
 
