@@ -650,8 +650,6 @@ def generate_csv_recomb_on_size(news_file_name, market_file_name, relative=True,
     g.close()
 
 
-"""
-"""
 # Regression data with earnings control
 generate_csv8_9("news_measures.csv", "market_measures.csv", True, True, True, True, True)
 generate_csv8_9("news_measures.csv", "market_measures.csv", False, True, True, True, True,)

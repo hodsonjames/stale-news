@@ -10,5 +10,6 @@ function [y, X, PART_VAR] = FM_csv_args(file, num_cols)
   D = importdata(file);
   y = D.data(:,2);
   X = D.data(:,3:num_cols);
+  X = [ones(size(y)) X];
   PART_VAR = D.data(:,1);
 end
