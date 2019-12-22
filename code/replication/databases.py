@@ -305,7 +305,7 @@ class BookDatabase:
         """
         Takes a file name and creates a BookDatabase for the corresponding file
         self.data: maps ticker to list of its relevant data rows
-        self.report_date: maps ticker to set of its report dates
+        self.report_date: maps ticker to set of its report dates (datadate)
         self.industry: maps ticker to 2-digit prefix of industry code from NAICS
         """
         self.data = {}
@@ -322,11 +322,11 @@ class BookDatabase:
                 current = line.rstrip('\n').split(',')
                 if current[4] in self.data:
                     self.data[current[4]].append(current)
-                    self.report_date[current[4]].add(current[5])  # updates when self.data updates
+                    self.report_date[current[4]].add(current[1])  # updates when self.data updates
                 else:
                     self.data[current[4]] = [current]
                     self.report_date[current[4]] = set()
-                    self.report_date[current[4]].add(current[5])
+                    self.report_date[current[4]].add(current[1])
                 if current[4] not in self.industry:
                     self.industry[current[4]] = current[7]
 
@@ -341,9 +341,9 @@ class BookDatabase:
             return -1
         rows = self.data[firm]
         low_ind = 0
-        low_date = rows[low_ind][5]  # uses rqd
+        low_date = rows[low_ind][1]  # uses datadate
         high_ind = len(rows) - 1
-        high_date = rows[high_ind][5]
+        high_date = rows[high_ind][1]
         unadjusted = -1
         if date > high_date:
             unadjusted = float(rows[high_ind][6])
@@ -352,7 +352,7 @@ class BookDatabase:
             return unadjusted
         else:
             mid_ind = (low_ind + high_ind) // 2
-            mid_date = rows[mid_ind][5]
+            mid_date = rows[mid_ind][1]
             while mid_ind != low_ind:
                 if mid_date <= date:
                     low_ind = mid_ind
@@ -360,7 +360,7 @@ class BookDatabase:
                 else:
                     high_ind = mid_ind
                 mid_ind = (low_ind + high_ind) // 2
-                mid_date = rows[mid_ind][5]
+                mid_date = rows[mid_ind][1]
             if low_date == date:
                 unadjusted = float(rows[low_ind - 1][6])
             else:

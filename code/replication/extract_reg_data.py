@@ -6,7 +6,7 @@ import utils_direct as ud
 
 
 def generate_csv8_9(news_file_name, market_file_name, eight=True, earnings=False, weekday=False, industry=False,
-                    firm_size=False):
+                    firm_size=False, include_ticker=False):
     """
     Writes csv file for regression computation
     eight: True computes equation 8, False computes equation 9
@@ -25,6 +25,8 @@ def generate_csv8_9(news_file_name, market_file_name, eight=True, earnings=False
         file_name = "reg_data_eq_9.csv"
     g = open(file_name, "w+")
     header = "date,dependent,AbnPctOld,Stories,AbnStories,Terms,MCap,BM,AbnRet,AbnVol,AbnVolatility,Illiq"
+    if include_ticker:
+        header = "TICKER," + header
     if earnings:
         header += ",Earnings"
     if weekday:
@@ -85,6 +87,8 @@ def generate_csv8_9(news_file_name, market_file_name, eight=True, earnings=False
                 continue
             # Create line with date (t)
             out_line = current_market[0]
+            if include_ticker:
+                out_line = current_market[1] + "," + out_line
             # append dependent (t+1)
             t_plus_1 = dates.index(current_market[0]) + 1
             if t_plus_1 >= len(dates):

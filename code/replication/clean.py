@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 # setup databases to read in from
-compustat = pd.read_csv("compustat_full.csv", dtype={'rqd': np.object, 'naics': np.object})
+compustat = pd.read_csv("compustat_full.csv", dtype={'datadate': np.object, 'naics': np.object})
 crsp = pd.read_csv("crsp_full.csv",  dtype={'VOL': np.object, 'SHROUT': np.object})
 news = pd.read_csv("djn_data.csv", dtype={'STORY_LENGTH': np.object})
 # Find shared firms between databases
@@ -13,11 +13,13 @@ sharedTics = list(set(compustat["tic"].unique().tolist()) & set(crsp["TICKER"].u
                   & set(news["TICKER"].unique().tolist()))
 # Keep shared and sort
 compustat.dropna(inplace=True)
+compustat = compustat.drop_duplicates(subset=['tic', 'datadate'], keep=False)
 compustat = compustat.loc[compustat["tic"].isin(sharedTics)]
-compustat.sort_values(by=["rdq"], inplace=True)
+compustat.sort_values(by=["datadate"], inplace=True)
 compustat.to_csv("reduced_compustat_full.csv", index=False)
 # Keep shared and sort
 crsp.dropna(inplace=True)
+crsp = crsp.drop_duplicates(subset=['TICKER', 'date'], keep=False)
 crsp = crsp.loc[crsp["TICKER"].isin(sharedTics)]
 crsp.sort_values(by=["date"], inplace=True)
 crsp.to_csv("reduced_crsp_full.csv", index=False)

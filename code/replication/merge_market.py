@@ -54,7 +54,7 @@ with open("reduced_crsp_full.csv") as f:
                 current_mcaps = []
         # insert DATE, TICKER, RETX
         new_line = current[1] + "," + current[2] + "," + current[7]
-        mcap = ud.marketCap(abs(float(current[3])), float(current[5]))  # PRC may be negative bid-ask average
+        mcap = ud.marketCap(float(current[6]), float(current[5]))
         total_mcap += mcap
         if current[2] not in current_ticker_to_mcap:  # in case crsp has redundancy
             current_ticker_to_mcap[current[2]] = mcap
