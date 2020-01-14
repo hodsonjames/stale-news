@@ -1,5 +1,5 @@
 """
-This file contains the base article class as well as specialized versions of it.
+This file contains the base article class.
 
 Christopher Gong, Jonathan Bodine
 """
@@ -16,11 +16,11 @@ class Article:
 
 	def __init__(self, text):
 		"""
-		Takes as input text, and populates the features of an 
+		Takes as input an XML string, and populates the features of an 
 		article. 
 		"""
 		try:
-			et = ET.fromstring(text) # Some articals do not parse correctly.
+			et = ET.fromstring(text) # Some articles do not parse correctly.
 			self.accessionNumber = accessionNum(et)
 			self.displayDate = dateutil.parser.parse(displayDate(et)).timestamp()
 			self.tickers = tickercreator(et)
@@ -32,4 +32,7 @@ class Article:
 		
 
 	def __lt__(self, other):
+		"""
+		Used to break ties when ordering in a heap queue.
+		"""
 		return False

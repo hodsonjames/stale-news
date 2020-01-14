@@ -13,11 +13,11 @@ from nltk.stem.porter import *
 
 class Similarity:
 
-	def __init__(self, num_closest = 5, old_news = 0.6, reprint = 0.8, look_back_days = 5):
+	def __init__(self, num_closest = 5, old_news = 0.6, reprint = 0.8, look_back_days = 3):
 		self.old_news = old_news
 		self.reprint = reprint
 		self.num_closest = num_closest
-		self.look_back = 51840 * look_back_days
+		self.look_back = 86400 * look_back_days
 
 	def staleNewsProcedure(self, ticker, story, companyLL):
 		'''
@@ -31,7 +31,7 @@ class Similarity:
 			if story.displayDate - compStory.displayDate > self.look_back:
 				companyLL.cut();
 				break;
-			sim = self.simularitytest(story, [compStory])
+			sim = self.similaritytest(story, [compStory])
 			heapq.heappush(maxpq, (sim, compStory))
 			compStory = companyLL.nextNode()
 		largestN = heapq.nlargest(self.num_closest, maxpq)
@@ -58,7 +58,7 @@ class Similarity:
 			return r
 		else:
 			others = [story_tuple[1] for story_tuple in neighborStories]
-			stale_score = self.simularitytest(origStory, others)
+			stale_score = self.similaritytest(origStory, others)
 			stale_max = neighborStories[0][0]
 			r[3] = stale_score
 			if (stale_score >= self.old_news):
@@ -75,7 +75,7 @@ class Similarity:
 		"""
 		raise NotImplementedError
 
-	def simularitytest(self, orig, others):
+	def similaritytest(self, orig, others):
 		"""
 		Function used to compare an article to a set of articles, can asume that preprocessing 
 		has already ben run on the article.
@@ -118,7 +118,7 @@ class BoWSimularity(Similarity):
 	def preprocessing(self, article):
 		article.pre = self.stop(self.stem(word_tokenize(article.text)))
 
-	def simularitytest(self, orig, others):
+	def similaritytest(self, orig, others):
 		"""
 		returns a similarity score between stemmed article orig 
 		and a listed of stemmed articles.
@@ -162,7 +162,7 @@ class CosineSimilarity(Similarity):
 		article.pre = self.stop(self.stem(word_tokenize(article.text)))
 		article.norm = np.sqrt(np.sum([np.square(article.pre[key]) for key in article.pre]))
 
-	def simularitytest(self, orig, others):
+	def similaritytest(self, orig, others):
 		"""
 		Calculates Old(s) and ClosestNeighbor(s), where s is curr_article. 
 		

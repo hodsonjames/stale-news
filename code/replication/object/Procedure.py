@@ -4,6 +4,7 @@ from Article import Article
 import time
 import glob
 import sys
+import os
 from multiprocessing import cpu_count
 import csv
 from ETUtils import *
@@ -12,14 +13,25 @@ def procedure(startlocation = 'data', endlocation='export_dataframe.csv', simtes
 	'''
 	Performs the procedure for the specified amount of articles. Uses 
 	all nml files from startlocation, and exports a csv file at endlocation.
+
+	To paralyze this process, some workers are used to process the articles, 
+	and some are used to compare the similarity.  The XML text is sent to all 
+	the different suppliers workers then are retrieved in order, this preserves 
+	the chronological order.  These are all then sent to the appropriate workers 
+	witch process the article in the order that they were received.  This results 
+	in the algorithm beinng able to utalize multiple threades while still 
+	processing the articles in the appropriate order.
 	'''
 
 	if worker_count < 0:
 		worker_count += cpu_count() + 1
 
-	worker_count = worker_count * 3
+	# Empirically found that using more threades than were available and allowing 
+	# the scheduler to decide which would run decreased run time, belied to be caused 
+	# by idle workers. 
+	worker_count = int(worker_count * 3)
 	
-	location = sorted(glob.glob(startlocation + '/*.nml'))
+	location = sorted(glob.glob(os.path.join(startlocation,'*.nml')))
 	companies = dict()
 	suppliers, supplier_processes = worker_init(worker_count, "supplier", simtest)
 	processors, processor_processes = worker_init(worker_count, "processor", simtest)
@@ -27,11 +39,11 @@ def procedure(startlocation = 'data', endlocation='export_dataframe.csv', simtes
 		print("File processing...",f)
 		xtg = textGetter(f)
 		
-		for supplier in suppliers: #Send out the first batch of articles
+		for supplier in suppliers: # Send out the first batch of articles
 			try:
 				et = next(xtg)
 			except StopIteration:
-				continue
+				break
 			supplier.send(et)
 
 		checks, load = 0, 0
