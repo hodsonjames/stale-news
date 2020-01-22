@@ -3,7 +3,6 @@
 # Database types and initialization
 from collections import OrderedDict
 import pandas as pd
-import datetime as dt
 
 
 class PandasDatabase:
@@ -130,7 +129,7 @@ class TextDatabase:
 
 class MeasuresDatabase(TextDatabase):
     """
-    New measures database
+    News measures database
     Columns:
     [0] ID of news story
     [1] Stock ticker
@@ -204,9 +203,9 @@ class MeasuresDatabase(TextDatabase):
 
 class AdjustableMeasuresDatabase(TextDatabase):
     """
-    New measures database
+    News measures database
     Columns:
-    [0] Date Unix
+    [0] Date
     [1] Story ID
     [2] Stock ticker
     [3] Length in number of unique terms
@@ -253,9 +252,7 @@ class AdjustableMeasuresDatabase(TextDatabase):
                 continue
             if row[2] not in self.tics:
                 self.tics[row[2]] = None
-            # convert date
-            epoch = float(row[0])
-            date = str(dt.datetime.utcfromtimestamp(epoch).strftime("%Y%m%d"))
+            date = row[0]
             if date not in self.dates:
                 self.dates[date] = None
             if (row[2], date) in self.tdMap:
