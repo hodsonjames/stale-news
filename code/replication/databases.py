@@ -376,17 +376,7 @@ class BookDatabase:
         Returns industry code for firm
         Returns String
         """
-        two_dig_prefix = self.industry[firm][0:2]
-        # 31-33 Manufacturing: map all to 31
-        if two_dig_prefix == "32" or two_dig_prefix == "33":
-            two_dig_prefix = "31"
-        # 44-45 Retail Trade: map all to 44
-        if two_dig_prefix == "45":
-            two_dig_prefix = "44"
-        # 48-49 Transportation and Warehousing: map all to 48
-        if two_dig_prefix == "49":
-            two_dig_prefix = "48"
-        return two_dig_prefix
+        return self.industry[firm][0:2]
 
 
 class ProcessedNewsDatabase:
