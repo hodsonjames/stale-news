@@ -54,7 +54,10 @@ with open("reduced_crsp_full.csv") as f:
                 current_mcaps = []
         # insert DATE, TICKER, RETX
         new_line = current[1] + "," + current[2] + "," + current[7]
-        mcap = ud.marketCap(float(current[6]), float(current[5]))
+        try:
+            mcap = ud.marketCap(float(current[6]), float(current[5]))
+        except ValueError as e:
+            continue
         total_mcap += mcap
         if current[2] not in current_ticker_to_mcap:  # in case crsp has redundancy
             current_ticker_to_mcap[current[2]] = mcap
@@ -64,11 +67,17 @@ with open("reduced_crsp_full.csv") as f:
         # insert LN_MCAP
         new_line += "," + str(ud.marketCapLN(mcap))
         # insert VOLUME_FRAC
-        new_line += "," + str(ud.firmVolumeFrac(float(current[4]), float(current[5])))
+        try:
+            new_line += "," + str(ud.firmVolumeFrac(float(current[4]), float(current[5])))
+        except ValueError as e:
+            continue
         # insert ILLIQ
         new_line += "," + str(ud.illiquidityMeasureDate(float(current[7]), float(current[4])))
         # insert BM
-        book = compustat.getBookValue(current[2], current[1])
+        try:
+            book = compustat.getBookValue(current[2], current[1])
+        except ValueError as e:
+            continue
         if book == -1:
             new_line += "," + "-inf"
         else:

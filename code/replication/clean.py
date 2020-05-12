@@ -16,20 +16,19 @@ crsp_dates.sort()
 sharedTics = list(set(compustat["tic"].unique().tolist()) & set(crsp["TICKER"].unique().tolist())
                   & set(news["TICKER"].unique().tolist()))
 # Keep shared and sort
-compustat.dropna(inplace=True)
+# compustat.dropna(inplace=True)
 compustat = compustat.drop_duplicates(subset=['tic', 'datadate'], keep=False)
 compustat = compustat.loc[compustat["tic"].isin(sharedTics)]
 compustat.sort_values(by=["datadate"], inplace=True)
 compustat.to_csv("reduced_compustat_full.csv", index=False)
 # Keep shared and sort
-crsp.dropna(inplace=True)
+# crsp.dropna(inplace=True)
 crsp = crsp.drop_duplicates(subset=['TICKER', 'date'], keep=False)
 crsp = crsp.loc[crsp["TICKER"].isin(sharedTics)]
 crsp.sort_values(by=["date"], inplace=True)
 crsp = crsp[['PERMNO', 'date', 'TICKER', 'PRC', 'VOL', 'SHROUT', 'OPENPRC', 'RET', 'vwretx']]  # For code compatibility
 crsp.to_csv("reduced_crsp_full.csv", index=False)
 # Keep shared
-news.dropna(inplace=True)
 news = news.loc[news["TICKER"].isin(sharedTics)]
 news.sort_values(by=["DATE_EST"], inplace=True)
 news.to_csv("delete_temp.csv", index=False)

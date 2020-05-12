@@ -1,4 +1,3 @@
-
 Industry Control: uses North American Industry Classification System (NAICS)
 11 Agriculture, Forestry, Fishing and Hunting
 21 Mining, Quarrying, and Oil and Gas Extraction
@@ -20,4 +19,4 @@ Industry Control: uses North American Industry Classification System (NAICS)
 72 Accommodation and Food Services
 81 Other Services (except Public Administration)
 92 Public Administration
-
+99 Nonclassifiable Establishments

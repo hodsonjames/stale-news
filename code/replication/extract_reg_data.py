@@ -32,9 +32,7 @@ def generate_csv8_9(news_file_name, market_file_name, eight=True, earnings=False
     if weekday:
         header += ",Tuesday,Wednesday,Thursday,Friday"
     if industry:
-        header += ",Extraction,Utilities,Construction,Manufacturing,Wholesale,Retail,Transportation," \
-                  "Information,Finance,Estate,Professional,Management,Administrative,Educational," \
-                  "Health,Entertainment,Accommodation,Other,Public"
+        header += ",I21,I22,I23,I31,I32,I33,I42,I44,I45,I48,I49,I51,I52,I53,I54,I55,I56,I61,I62,I71,I72,I81,I92,I99"
     if firm_size:
         header += ",Size2,Size3,Size4,Size5"
     header += "\n"
@@ -152,8 +150,8 @@ def generate_csv8_9(news_file_name, market_file_name, eight=True, earnings=False
                         out_line += "," + str(0)
             if industry:
                 # append industry dummies for firm (i)
-                permitted_codes = ["21", "22", "23", "31", "42", "44", "48", "51", "52", "53", "54", "55", "56", "61",
-                                   "62", "71", "72", "81", "92"]
+                permitted_codes = ["21", "22", "23", "31", "32", "33", "42", "44", "45", "48", "49", "51", "52", "53", "54", "55",
+                                   "56", "61", "62", "71", "72", "81", "92", "99"]
                 for code in permitted_codes:
                     if code == current_market[9]:
                         out_line += "," + str(1)
@@ -198,9 +196,7 @@ def generate_csv10_11(news_file_name, market_file_name, ten=True, earnings=False
     if weekday:
         header += ",Tuesday,Wednesday,Thursday,Friday"
     if industry:
-        header += ",Extraction,Utilities,Construction,Manufacturing,Wholesale,Retail,Transportation," \
-                  "Information,Finance,Estate,Professional,Management,Administrative,Educational," \
-                  "Health,Entertainment,Accommodation,Other,Public"
+        header += ",I21,I22,I23,I31,I32,I33,I42,I44,I45,I48,I49,I51,I52,I53,I54,I55,I56,I61,I62,I71,I72,I81,I92,I99"
     if firm_size:
         header += ",Size2,Size3,Size4,Size5"
     header += "\n"
@@ -318,8 +314,8 @@ def generate_csv10_11(news_file_name, market_file_name, ten=True, earnings=False
                         out_line += "," + str(0)
             if industry:
                 # append industry dummies for firm (i)
-                permitted_codes = ["21", "22", "23", "31", "42", "44", "48", "51", "52", "53", "54", "55", "56", "61",
-                                   "62", "71", "72", "81", "92"]
+                permitted_codes = ["21", "22", "23", "31", "32", "33", "42", "44", "45", "48", "49", "51", "52", "53", "54", "55",
+                                  "56", "61", "62", "71", "72", "81", "92", "99"]
                 for code in permitted_codes:
                     if code == current_market[9]:
                         out_line += "," + str(1)
@@ -360,9 +356,7 @@ def generate_csv12(news_file_name, market_file_name, t1, t2, earnings=False, wee
     if weekday:
         header += ",Tuesday,Wednesday,Thursday,Friday"
     if industry:
-        header += ",Extraction,Utilities,Construction,Manufacturing,Wholesale,Retail,Transportation," \
-                  "Information,Finance,Estate,Professional,Management,Administrative,Educational," \
-                  "Health,Entertainment,Accommodation,Other,Public"
+        header += ",I21,I22,I23,I31,I32,I33,I42,I44,I45,I48,I49,I51,I52,I53,I54,I55,I56,I61,I62,I71,I72,I81,I92,I99"
     if firm_size:
         header += ",Size2,Size3,Size4,Size5"
     header += "\n"
@@ -485,8 +479,8 @@ def generate_csv12(news_file_name, market_file_name, t1, t2, earnings=False, wee
                         out_line += "," + str(0)
             if industry:
                 # append industry dummies for firm (i)
-                permitted_codes = ["21", "22", "23", "31", "42", "44", "48", "51", "52", "53", "54", "55", "56", "61",
-                                   "62", "71", "72", "81", "92"]
+                permitted_codes = ["21", "22", "23", "31", "32", "33", "42", "44", "45", "48", "49", "51", "52", "53", "54", "55",
+                                  "56", "61", "62", "71", "72", "81", "92", "99"]
                 for code in permitted_codes:
                     if code == current_market[9]:
                         out_line += "," + str(1)
@@ -562,9 +556,7 @@ def generate_csv_recomb_on_size(news_file_name, market_file_name, relative=True,
     if weekday:
         header += ",Tuesday,Wednesday,Thursday,Friday"
     if industry:
-        header += ",Extraction,Utilities,Construction,Manufacturing,Wholesale,Retail,Transportation," \
-                  "Information,Finance,Estate,Professional,Management,Administrative,Educational," \
-                  "Health,Entertainment,Accommodation,Other,Public"
+        header += ",I21,I22,I23,I31,I32,I33,I42,I44,I45,I48,I49,I51,I52,I53,I54,I55,I56,I61,I62,I71,I72,I81,I92,I99"
     header += "\n"
     g.write(header)
 
@@ -637,8 +629,8 @@ def generate_csv_recomb_on_size(news_file_name, market_file_name, relative=True,
                         out_line += "," + str(0)
             if industry:
                 # append industry dummies for firm (i)
-                permitted_codes = ["21", "22", "23", "31", "42", "44", "48", "51", "52", "53", "54", "55", "56", "61",
-                                   "62", "71", "72", "81", "92"]
+                permitted_codes = ["21", "22", "23", "31", "32", "33", "42", "44", "45", "48", "49", "51", "52", "53", "54", "55",
+                                  "56", "61", "62", "71", "72", "81", "92", "99"]
                 for code in permitted_codes:
                     if code == current_market[9]:
                         out_line += "," + str(1)
@@ -651,7 +643,8 @@ def generate_csv_recomb_on_size(news_file_name, market_file_name, relative=True,
 
 
 # Regression data with earnings control
-generate_csv8_9("news_measures.csv", "market_measures.csv", True, True, True, True, True)
+generate_csv8_9("news_measures.csv", "market_measures.csv", True, True, True, True, True, True)
+"""
 generate_csv8_9("news_measures.csv", "market_measures.csv", False, True, True, True, True,)
 generate_csv10_11("news_measures.csv", "market_measures.csv", True, True, True, True, True)
 generate_csv10_11("news_measures.csv", "market_measures.csv", False, True, True, True, True)
@@ -664,3 +657,4 @@ generate_csv13("reg_data_eq_10.csv")
 # Regressions for recombinations on firm size with controls
 generate_csv_recomb_on_size("news_measures.csv", "market_measures.csv", True, True, True, True)
 generate_csv_recomb_on_size("news_measures.csv", "market_measures.csv", False, True, True, True)
+"""
