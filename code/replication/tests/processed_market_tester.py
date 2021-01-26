@@ -11,7 +11,7 @@ for k in dict_ar:
 """
 print("Expected: -0.00912777688 Actual: " + str(mdb.abnormalReturn("AAPL", "20181231", -5, -1)))
 print("Expected: -0.04443402413 Actual: " + str(mdb.abnormalReturn("AAPL", "20000410", -5, -1)))
-
+# Actual will be -1 if we are missing data for "AAPL" near these days
 
 """
 dict_av = mdb.abn_vol["AAPL"]
@@ -20,7 +20,7 @@ for k in dict_av:
 """
 print("Expected: 0.00303392624 Actual: " + str(mdb.abnormalVol("AAPL", "20181231", -5, -1)))
 print("Expected: 0.01266838288 Actual: " + str(mdb.abnormalVol("AAPL", "20000410", -5, -1)))
-
+# Actual will be -1 if we are missing data for "AAPL" near these days
 
 """
 dict_ill = mdb.illiq["AAPL"]
@@ -29,7 +29,7 @@ for k in dict_ill:
 """
 print("Expected: -8.42723836098 Actual: " + str(mdb.illiquidity("AAPL", "20181231", -5, -1)))
 print("Expected: -4.58696673867 Actual: " + str(mdb.illiquidity("AAPL", "20000410", -5, -1)))
-
+# Actual will be -1 if we are missing data for "AAPL" near these days
 
 """
 dict_avo = mdb.abn_volat["AAPL"]
@@ -38,4 +38,4 @@ for k in dict_avo:
 """
 print("Expected: 0.01238832405 Actual: " + str(mdb.abnormalVolatility("AAPL", "20181231", -5, -1)))
 print("Expected: 0.03561621697 Actual: " + str(mdb.abnormalVolatility("AAPL", "20000410", -5, -1)))
-
+# Actual will be -1 if we are missing data for "AAPL" near these days

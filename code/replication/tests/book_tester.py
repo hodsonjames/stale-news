@@ -92,7 +92,7 @@ print("Expected: 50224000000 Actual: " + str(bdb.getBookValue("MDT", "20181031")
 print("Expected: 49607000000 Actual: " + str(bdb.getBookValue("MDT", "20181121")))
 print("Expected: 4119200000 Actual: " + str(bdb.getBookValue("MDT", "20000231")))
 print("Expected: 50720000000 Actual: " + str(bdb.getBookValue("MDT", "20180630")))
-print("Expected: 300 Actual: " + bdb.industryCode("MDT"))
+print("Expected: 300 Actual: " + bdb.getIndustryCode("MDT"))
 print("Expected: True Actual: " + str(bdb.isReportDate("MDT", "20181120")))
 print("Expected: False Actual: " + str(bdb.isReportDate("MDT", "20181121")))
 

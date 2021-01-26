@@ -2,6 +2,8 @@
 # -------
 # Sequential helper functions that take direct input
 import numpy as np
+import datetime
+import calendar
 
 
 def marketCap(price, shares, sharesUnit=1000):
@@ -57,4 +59,33 @@ def abnormalVolDate(fVolFrac, afVolFrac):
     Returns FLOAT
     """
     return fVolFrac - afVolFrac
+
+
+def firm_size_quintile(firm_mcap, mcap_list):
+    """
+    Quintile number (1-5) of firm_mcap within sorted mcap_list
+    Returns INTEGER
+    """
+    firm_mcap_index = mcap_list.index(firm_mcap)
+    quintile_number = 1
+    boundary_index = (len(mcap_list) * quintile_number) // 5
+    while quintile_number < 5:
+        if firm_mcap_index < boundary_index:
+            return quintile_number
+        quintile_number += 1
+        boundary_index = (len(mcap_list) * quintile_number) // 5
+    return quintile_number
+
+
+def day_of_week(YYYYMMDD):
+    """
+    Takes date string and returns day of week as number. Monday:0, Tuesday:1, Wednesday:2, Thursday:3, Friday:4
+    Saturday and Sunday throw error
+    Returns INTEGER
+    """
+    options = {"Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4}
+    dtday = datetime.datetime.strptime(YYYYMMDD, '%Y%m%d').weekday()
+    if calendar.day_name[dtday] in options:
+        return options[calendar.day_name[dtday]]
+    raise RuntimeError("SUNDAY AND SUNDAY NEWS UNACCOUNTED FOR")
 
